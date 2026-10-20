@@ -60,7 +60,7 @@ export default function SpacesPage(): ReactNode {
                     onOpen={() => navigate(`/spaces/${space.id}`)}
                     onEdit={() => setEditing({ open: true, space })}
                     onRemove={() => confirmRemove(space)}
-                    onOpenDir={() => void invoke('space:open-dir', space.id)}
+                    onOpenDir={() => invoke('space:open-dir', space.id).catch(error => message.error(formatError(t, error)))}
                   />
                 </Col>
               ))}

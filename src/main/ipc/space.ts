@@ -20,6 +20,8 @@ export function registerSpaceIpc(): void {
 
   handle('space:open-dir', async (id) => {
     await spaceService.get(id)
-    await shell.openPath(spacePaths.root(id))
+    const error = await shell.openPath(spacePaths.root(id))
+    if (error)
+      throw new Error(error)
   })
 }
