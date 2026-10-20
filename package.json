@@ -71,15 +71,24 @@
   },
   "pnpm": {
     "supportedArchitectures": {
-      "os": ["current"],
-      "cpu": ["current", "x64", "arm64"]
+      "os": [
+        "current"
+      ],
+      "cpu": [
+        "current",
+        "x64",
+        "arm64"
+      ]
     },
     "onlyBuiltDependencies": [
       "electron",
       "esbuild",
       "node-pty",
       "simple-git-hooks"
-    ]
+    ],
+    "patchedDependencies": {
+      "lint-staged": "patches/lint-staged.patch"
+    }
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged"

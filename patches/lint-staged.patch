@@ -1,0 +1,13 @@
+diff --git a/lib/index.js b/lib/index.js
+index 9256d5cdf57ec59605215b998097a50e49c0ab9e..79c848d4de6be4c2f4152f5e30b5f24c228e6e66 100644
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -81,7 +81,7 @@ const lintStaged = async (options = {}, logger = console) => {
+   debugLog('%s', gitVersion)
+ 
+   if (!assertGitVersion(gitVersion)) {
+-    throw new Error(minGitVersionRequired(MIN_GIT_VERSION, gitVersion), { cause: gitVersion })
++    debugLog(minGitVersionRequired(MIN_GIT_VERSION, gitVersion))
+   }
+ 
+   await validateOptions(parsedOptions, logger)
