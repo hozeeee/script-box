@@ -28,6 +28,7 @@ export default function SpaceCard({ space, onOpen, onEdit, onRemove, onOpenDir }
     <Card
       hoverable
       size="small"
+      styles={{ body: { padding: '10px 12px' } }}
       onClick={onOpen}
       actions={[
         <Tooltip key="edit" title={t('common.edit')}><EditOutlined onClick={stop(onEdit)} /></Tooltip>,
@@ -35,16 +36,16 @@ export default function SpaceCard({ space, onOpen, onEdit, onRemove, onOpenDir }
         <Tooltip key="delete" title={t('common.delete')}><DeleteOutlined onClick={stop(onRemove)} /></Tooltip>,
       ]}
     >
-      <Flex vertical gap={8}>
-        <Typography.Text strong ellipsis style={{ fontSize: 15 }}>{space.name}</Typography.Text>
-        <Typography.Paragraph type="secondary" ellipsis={{ rows: 2 }} style={{ margin: 0, minHeight: 44 }}>
+      <Flex vertical gap={4}>
+        <Typography.Text strong ellipsis>{space.name}</Typography.Text>
+        <Typography.Text type="secondary" ellipsis style={{ fontSize: 12 }}>
           {space.description || t('spaces.noDescription')}
-        </Typography.Paragraph>
-        <Flex justify="space-between" align="center">
+        </Typography.Text>
+        <Flex justify="space-between" align="center" gap={8}>
           {runtimeReady
-            ? <Tag color="green">{`Node ${space.nodeVersion}`}</Tag>
-            : <Tag color="warning" icon={<WarningOutlined />}>{space.nodeVersion ? `Node ${space.nodeVersion}` : t('spaces.noRuntime')}</Tag>}
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>{formatTime(space.updatedAt)}</Typography.Text>
+            ? <Tag color="green" style={{ margin: 0 }}>{`Node ${space.nodeVersion}`}</Tag>
+            : <Tag color="warning" icon={<WarningOutlined />} style={{ margin: 0 }}>{space.nodeVersion ? `Node ${space.nodeVersion}` : t('spaces.noRuntime')}</Tag>}
+          <Typography.Text type="secondary" ellipsis style={{ fontSize: 11 }}>{formatTime(space.updatedAt)}</Typography.Text>
         </Flex>
       </Flex>
     </Card>

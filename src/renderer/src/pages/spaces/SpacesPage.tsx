@@ -52,9 +52,9 @@ export default function SpacesPage(): ReactNode {
             </Empty>
           )
         : (
-            <Row gutter={[16, 16]}>
+            <Row gutter={[12, 12]}>
               {spaces.map(space => (
-                <Col key={space.id} xs={24} sm={12} lg={8} xxl={6}>
+                <Col key={space.id} xs={24} sm={12} md={8} xl={6} xxl={4}>
                   <SpaceCard
                     space={space}
                     onOpen={() => navigate(`/spaces/${space.id}`)}
