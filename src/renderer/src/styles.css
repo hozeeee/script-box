@@ -52,6 +52,20 @@ html[data-theme='dark'] body {
   height: 100%;
 }
 
+.space-sortable {
+  cursor: grab;
+  user-select: none;
+  transition: opacity 0.15s ease;
+}
+
+.space-sortable:active {
+  cursor: grabbing;
+}
+
+.space-sortable.dragging {
+  opacity: 0.45;
+}
+
 .script-item {
   display: flex;
   align-items: center;

@@ -8,6 +8,7 @@ interface SpacesState {
   load: () => Promise<void>
   create: (input: SpaceInput) => Promise<Space>
   update: (id: string, input: Partial<SpaceInput>) => Promise<Space>
+  reorder: (ids: string[]) => Promise<void>
   remove: (id: string) => Promise<void>
   /** Replace a space after the main process returned a newer copy */
   put: (space: Space) => void
@@ -28,6 +29,13 @@ export const useSpacesStore = create<SpacesState>((set, get) => ({
     const space = await invoke('space:update', id, input)
     get().put(space)
     return space
+  },
+  async reorder(ids) {
+    await invoke('space:reorder', ids)
+    const positions = new Map(ids.map((id, index) => [id, index]))
+    set({
+      spaces: [...get().spaces].sort((a, b) => (positions.get(a.id) ?? ids.length) - (positions.get(b.id) ?? ids.length)),
+    })
   },
   async remove(id) {
     await invoke('space:remove', id)

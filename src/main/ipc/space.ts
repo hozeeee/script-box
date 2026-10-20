@@ -11,6 +11,7 @@ export function registerSpaceIpc(): void {
   handle('space:get', id => spaceService.get(id))
   handle('space:create', input => spaceService.create(input))
   handle('space:update', (id, input) => spaceService.update(id, input))
+  handle('space:reorder', ids => spaceService.reorder(ids))
 
   handle('space:remove', async (id) => {
     if (runnerService.hasActiveInSpace(id) || depsService.isBusy(id))

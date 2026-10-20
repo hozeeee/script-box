@@ -39,6 +39,8 @@
     "title": "Spaces",
     "create": "New space",
     "edit": "Edit space",
+    "sort": "Reorder",
+    "finishSorting": "Finish reordering",
     "empty": "No spaces yet. Create one to get started.",
     "namePlaceholder": "e.g. Data processing",
     "noDescription": "No description",

@@ -20,6 +20,9 @@ export const paths = {
   get spaces() {
     return join(root(), 'spaces')
   },
+  get spaceOrder() {
+    return join(root(), 'spaces', 'order.json')
+  },
   get history() {
     return join(root(), 'history')
   },

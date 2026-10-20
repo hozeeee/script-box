@@ -44,6 +44,7 @@ export interface IpcInvokeMap {
   'space:get': (id: string) => Space
   'space:create': (input: SpaceInput) => Space
   'space:update': (id: string, input: Partial<SpaceInput>) => Space
+  'space:reorder': (ids: string[]) => void
   'space:remove': (id: string) => void
   'space:open-dir': (id: string) => void
 

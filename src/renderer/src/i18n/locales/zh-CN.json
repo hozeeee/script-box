@@ -39,6 +39,8 @@
     "title": "运行空间",
     "create": "新建空间",
     "edit": "编辑空间",
+    "sort": "调整顺序",
+    "finishSorting": "完成排序",
     "empty": "还没有运行空间，新建一个开始吧",
     "namePlaceholder": "例如：数据处理脚本",
     "noDescription": "暂无描述",

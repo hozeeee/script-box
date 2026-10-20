@@ -10,6 +10,7 @@ import { SPACE_NPMRC, WELCOME_SCRIPT, WELCOME_SCRIPT_NAME } from './templates'
 class SpaceService {
   /** Per-space promise chain so concurrent metadata updates never clobber each other */
   private locks = new Map<string, Promise<unknown>>()
+  private orderLock: Promise<unknown> = Promise.resolve()
 
   async list(): Promise<Space[]> {
     if (!(await exists(paths.spaces)))
@@ -18,9 +19,21 @@ class SpaceService {
     const spaces = await Promise.all(
       ids.filter(id => ID_PATTERN.test(id)).map(id => readJson<Space | null>(spacePaths.meta(id), null)),
     )
+    const order = await readJson<string[]>(paths.spaceOrder, [])
+    const positions = new Map(order.map((id, index) => [id, index]))
     return spaces
       .filter((space): space is Space => space !== null)
-      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .sort((a, b) => {
+        const aPosition = positions.get(a.id)
+        const bPosition = positions.get(b.id)
+        if (aPosition === undefined && bPosition === undefined)
+          return b.updatedAt - a.updatedAt
+        if (aPosition === undefined)
+          return -1
+        if (bPosition === undefined)
+          return 1
+        return aPosition - bPosition
+      })
   }
 
   async get(id: string): Promise<Space> {
@@ -64,6 +77,18 @@ class SpaceService {
       if (input.nodeVersion !== undefined)
         space.nodeVersion = input.nodeVersion
     })
+  }
+
+  reorder(ids: string[]): Promise<void> {
+    const next = this.orderLock.catch(() => {}).then(async () => {
+      const spaces = await this.list()
+      const currentIds = new Set(spaces.map(space => space.id))
+      if (ids.length !== currentIds.size || new Set(ids).size !== ids.length || ids.some(id => !currentIds.has(id)))
+        throw new Error('Invalid space order')
+      await writeJson(paths.spaceOrder, ids)
+    })
+    this.orderLock = next
+    return next
   }
 
   async remove(id: string): Promise<void> {
