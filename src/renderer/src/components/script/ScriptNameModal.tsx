@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { formatError } from '@renderer/api/errors'
 import { SCRIPT_EXTENSIONS } from '@shared/types'
 import { App, Form, Input, Modal, Select } from 'antd'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 interface Props {
@@ -34,11 +34,6 @@ export default function ScriptNameModal({ open, title, initialName, onSubmit, on
   const [form] = Form.useForm<FormValues>()
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    if (open)
-      form.setFieldsValue(split(initialName))
-  }, [open, initialName, form])
-
   const submit = async (): Promise<void> => {
     const { base, ext } = await form.validateFields()
     setSaving(true)
@@ -56,7 +51,9 @@ export default function ScriptNameModal({ open, title, initialName, onSubmit, on
 
   return (
     <Modal open={open} title={title} confirmLoading={saving} onOk={() => void submit()} onCancel={onClose} destroyOnHidden>
-      <Form form={form} preserve={false} onFinish={() => void submit()}>
+      {/* The form is remounted on every open (destroyOnHidden), so initialValues is applied each time;
+          setFieldsValue from an effect would run before the form mounts and get wiped */}
+      <Form form={form} preserve={false} initialValues={split(initialName)} onFinish={() => void submit()}>
         <Form.Item
           name="base"
           rules={[

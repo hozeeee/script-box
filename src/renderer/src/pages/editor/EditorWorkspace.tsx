@@ -14,14 +14,14 @@ import ScriptEditorPane from './ScriptEditorPane'
 import { useScriptActions } from './useScriptActions'
 import { useScripts } from './useScripts'
 
-type NameDialog = { mode: 'create' } | { mode: 'rename', name: string } | null
+type NameDialog = { open: boolean } & ({ mode: 'create' } | { mode: 'rename', name: string })
 
 export default function EditorWorkspace({ space }: { space: Space }): ReactNode {
   const { t } = useTranslation()
   const { scripts, loaded, reload } = useScripts(space.id)
   const [params, setParams] = useSearchParams()
   const [bottomTab, setBottomTab] = useState(DEPS_TAB)
-  const [nameDialog, setNameDialog] = useState<NameDialog>(null)
+  const [nameDialog, setNameDialog] = useState<NameDialog>({ open: false, mode: 'create' })
   const [configuring, setConfiguring] = useState<string | null>(null)
   const selected = params.get('script')
   const selectedFile = scripts.find(file => file.name === selected)
@@ -59,13 +59,13 @@ export default function EditorWorkspace({ space }: { space: Space }): ReactNode 
             scripts={scripts}
             selected={selected}
             onSelect={select}
-            onCreate={() => setNameDialog({ mode: 'create' })}
+            onCreate={() => setNameDialog({ open: true, mode: 'create' })}
             onImported={(names) => {
               void reload().then(() => names[0] && select(names[0]))
             }}
             onRun={name => void actions.run(name)}
             onConfigure={setConfiguring}
-            onRename={name => setNameDialog({ mode: 'rename', name })}
+            onRename={name => setNameDialog({ open: true, mode: 'rename', name })}
             onRemove={actions.remove}
           />
         </Splitter.Panel>
@@ -93,11 +93,12 @@ export default function EditorWorkspace({ space }: { space: Space }): ReactNode 
       </Splitter>
 
       <ScriptNameModal
-        open={!!nameDialog}
-        title={nameDialog?.mode === 'rename' ? t('common.rename') : t('script.new')}
-        initialName={nameDialog?.mode === 'rename' ? nameDialog.name : undefined}
-        onClose={() => setNameDialog(null)}
-        onSubmit={name => nameDialog?.mode === 'rename' ? actions.rename(nameDialog.name, name) : actions.create(name)}
+        open={nameDialog.open}
+        title={nameDialog.mode === 'rename' ? t('common.rename') : t('script.new')}
+        initialName={nameDialog.mode === 'rename' ? nameDialog.name : undefined}
+        // Keep the mode while the close animation plays so the title doesn't flip to "new"
+        onClose={() => setNameDialog(prev => ({ ...prev, open: false }))}
+        onSubmit={name => nameDialog.mode === 'rename' ? actions.rename(nameDialog.name, name) : actions.create(name)}
       />
       <RunConfigDrawer
         open={!!configuring}
