@@ -31,7 +31,7 @@ export default function SpaceHeader({ space }: { space: Space }): ReactNode {
         {space.name}
       </Typography.Title>
       <Typography.Text type="secondary">Node</Typography.Text>
-      <NodeVersionSelect value={space.nodeVersion} onChange={changeVersion} style={{ width: 160 }} />
+      <NodeVersionSelect value={space.nodeVersion} onChange={changeVersion} style={{ width: 220 }} />
       <Tooltip title={t('common.openDir')}>
         <Button
           size="small"
