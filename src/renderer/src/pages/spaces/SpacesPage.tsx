@@ -70,7 +70,8 @@ export default function SpacesPage(): ReactNode {
       <SpaceFormModal
         open={editing.open}
         space={editing.space}
-        onClose={() => setEditing({ open: false })}
+        // Keep the space while the close animation plays so the title doesn't flip to "create"
+        onClose={() => setEditing(prev => ({ ...prev, open: false }))}
         onSaved={(space) => {
           if (!editing.space)
             navigate(`/spaces/${space.id}`)

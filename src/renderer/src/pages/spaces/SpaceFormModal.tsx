@@ -6,7 +6,7 @@ import { useRuntimesStore } from '@renderer/stores/runtimes'
 import { useSettingsStore } from '@renderer/stores/settings'
 import { useSpacesStore } from '@renderer/stores/spaces'
 import { App, Form, Input, Modal } from 'antd'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 interface Props {
@@ -26,13 +26,12 @@ export default function SpaceFormModal({ open, space, onClose, onSaved }: Props)
   const installed = useRuntimesStore(state => state.installed)
   const defaultVersion = useSettingsStore(state => state.settings?.run.defaultNodeVersion)
 
-  useEffect(() => {
-    if (!open)
-      return
-    form.setFieldsValue(space
-      ? { name: space.name, description: space.description, nodeVersion: space.nodeVersion }
-      : { name: '', description: '', nodeVersion: defaultVersion ?? installed[0]?.version ?? null })
-  }, [open, space, form, defaultVersion, installed])
+  // The modal body mounts lazily (and is destroyed on close), so values set from an effect
+  // can land before the Form is connected and get lost. Seed them via initialValues instead,
+  // which are applied every time the Form mounts.
+  const initialValues: SpaceInput = space
+    ? { name: space.name, description: space.description, nodeVersion: space.nodeVersion }
+    : { name: '', description: '', nodeVersion: defaultVersion ?? installed[0]?.version ?? null }
 
   const submit = async (): Promise<void> => {
     const values = await form.validateFields()
@@ -59,7 +58,7 @@ export default function SpaceFormModal({ open, space, onClose, onSaved }: Props)
       onCancel={onClose}
       destroyOnHidden
     >
-      <Form form={form} layout="vertical" preserve={false}>
+      <Form form={form} layout="vertical" preserve={false} initialValues={initialValues}>
         <Form.Item name="name" label={t('common.name')} rules={[{ required: true, whitespace: true, max: 64 }]}>
           <Input placeholder={t('spaces.namePlaceholder')} autoFocus />
         </Form.Item>
