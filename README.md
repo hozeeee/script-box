@@ -62,7 +62,7 @@ history/<spaceId>/     运行历史与日志
 
 ## 开发
 
-需要 Node.js >= 22 和 pnpm 10。
+需要 Node.js >= 22 和 pnpm 10。必须使用 pnpm，没有安装的话见[安装 pnpm](#安装-pnpm)。
 
 ```bash
 pnpm install        # 会自动为 Electron 重新编译 node-pty
@@ -74,6 +74,25 @@ pnpm build:linux    # 打包（也可以用 build:win / build:mac）
 ```
 
 > 国内网络安装 Electron 较慢时，可以先设置 `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/` 再执行 `pnpm install`。
+
+### 安装 pnpm
+
+本项目只支持 pnpm，不要用 npm 或 yarn 安装依赖，原因如下：
+
+- 依赖版本由 `pnpm-lock.yaml` 锁定，CI 也用 `pnpm install --frozen-lockfile` 安装；
+- `package.json` 中的 `pnpm` 字段只有 pnpm 会读取，包括依赖补丁（`patches/`）、原生依赖构建白名单和多架构原生包配置；
+- `typecheck`、`build:*` 脚本和 pre-commit 钩子内部都直接调用 `pnpm`。
+
+推荐用 Node.js 自带的 Corepack 启用 pnpm，它会自动使用 `package.json` 中 `packageManager` 字段指定的版本：
+
+```bash
+corepack enable
+pnpm -v
+```
+
+> Node.js 25 起不再自带 Corepack，需要先执行 `npm install -g corepack`。不想用 Corepack 的话，也可以直接执行 `npm install -g pnpm@10`。
+>
+> 如果之前已经用 npm 装过依赖，先删除 `node_modules` 和 `package-lock.json`，再执行 `pnpm install`。
 
 ### 目录结构
 

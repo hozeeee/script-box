@@ -62,7 +62,7 @@ history/<spaceId>/     run history and logs
 
 ## Development
 
-Requires Node.js >= 22 and pnpm 10.
+Requires Node.js >= 22 and pnpm 10. pnpm is mandatory; see [Installing pnpm](#installing-pnpm) if you don't have it.
 
 ```bash
 pnpm install        # also rebuilds node-pty for Electron
@@ -72,6 +72,25 @@ pnpm typecheck      # TypeScript type check
 pnpm test           # vitest unit tests
 pnpm build:linux    # package the app (or build:win / build:mac)
 ```
+
+### Installing pnpm
+
+Only pnpm is supported. Do not install dependencies with npm or yarn:
+
+- Dependency versions are locked by `pnpm-lock.yaml`, and CI installs with `pnpm install --frozen-lockfile`.
+- The `pnpm` field in `package.json` is read only by pnpm. It holds the dependency patches (`patches/`), the allowlist of native dependencies that may build, and the multi-architecture native package settings.
+- The `typecheck` and `build:*` scripts and the pre-commit hook call `pnpm` directly.
+
+The recommended way is to enable pnpm through Corepack, which ships with Node.js and automatically uses the version pinned in the `packageManager` field of `package.json`:
+
+```bash
+corepack enable
+pnpm -v
+```
+
+> Node.js 25 and later no longer bundle Corepack, so run `npm install -g corepack` first. If you'd rather not use Corepack, run `npm install -g pnpm@10` instead.
+>
+> If you already installed dependencies with npm, delete `node_modules` and `package-lock.json` before running `pnpm install`.
 
 ### Layout
 
