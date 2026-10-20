@@ -56,7 +56,11 @@ export default function InstalledRuntimes(): ReactNode {
     {
       title: t('runtimes.usedBy'),
       key: 'usedBy',
-      render: (_, runtime) => usedBy(runtime.version).map(name => <Tag key={name}>{name}</Tag>),
+      render: (_, runtime) => (
+        <Space size={4} wrap>
+          {usedBy(runtime.version).map(name => <Tag key={name} style={{ margin: 0 }}>{name}</Tag>)}
+        </Space>
+      ),
     },
     {
       title: t('common.actions'),
