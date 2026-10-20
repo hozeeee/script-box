@@ -1,0 +1,109 @@
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'PingFang SC',
+    'Microsoft YaHei', sans-serif;
+}
+
+html[data-theme='dark'] body {
+  background: #141414;
+  color-scheme: dark;
+}
+
+.app-root {
+  height: 100%;
+}
+
+.app-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.page {
+  height: 100%;
+  overflow: auto;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.fill {
+  height: 100%;
+  min-height: 0;
+}
+
+.terminal-host {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  padding: 4px 0 0 8px;
+  box-sizing: border-box;
+}
+
+.terminal-host .xterm {
+  height: 100%;
+}
+
+.script-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 4px;
+  margin: 1px 6px;
+}
+
+.script-item-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bottom-tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.bottom-tabs > .ant-tabs-nav {
+  margin: 0;
+  padding: 4px 8px 0;
+}
+
+.bottom-tabs > .ant-tabs-content-holder {
+  flex: 1;
+  min-height: 0;
+}
+
+.bottom-tabs .ant-tabs-content,
+.bottom-tabs .ant-tabs-tabpane-active {
+  height: 100%;
+}
+
+.settings-form {
+  max-width: 760px;
+}
+
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  border: 2px dashed #1677ff;
+  background: rgba(22, 119, 255, 0.08);
+  font-size: 16px;
+}

@@ -1,0 +1,55 @@
+name: Bug report / 问题反馈
+description: Report something that does not work as expected / 报告不符合预期的行为
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please search existing issues first.
+        感谢反馈！提交前请先搜索是否已有相同的 issue。
+  - type: textarea
+    id: description
+    attributes:
+      label: Description / 问题描述
+      description: What happened and what did you expect? / 发生了什么，你期望的结果是什么？
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce / 复现步骤
+      placeholder: |
+        1. Create a space with Node v22
+        2. Install lodash
+        3. Run script ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Script Box version / 版本
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system / 操作系统
+      options:
+        - Windows
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version used by the space / 空间使用的 Node 版本
+      placeholder: v22.11.0
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / 日志
+      description: Terminal output or error messages / 终端输出或错误信息
+      render: shell

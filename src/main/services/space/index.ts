@@ -1,0 +1,1 @@
+export { spaceService } from './service'

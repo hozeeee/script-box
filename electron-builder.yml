@@ -1,0 +1,73 @@
+appId: com.scriptbox.app
+productName: Script Box
+copyright: Copyright © 2025 Script Box Contributors
+directories:
+  buildResources: build
+  output: dist
+files:
+  - '!**/.vscode/*'
+  - '!**/.github/*'
+  - '!**/.qoder/*'
+  - '!src/*'
+  - '!build/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!vitest.config.{js,ts,mjs,mts}'
+  - '!{.eslintcache,eslint.config.mjs,.editorconfig,CHANGELOG.md,README.md,README.en.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json,*.tsbuildinfo}'
+asarUnpack:
+  - resources/**
+  # native binaries cannot be executed from inside app.asar
+  - node_modules/node-pty/**
+  - node_modules/esbuild/**
+  - node_modules/@esbuild/**
+extraResources:
+  # bundled Node.js declarations so the editor has Node API hints offline
+  - from: node_modules/@types/node
+    to: types/@types/node
+    filter: ['**/*.d.ts', package.json]
+  - from: node_modules/undici-types
+    to: types/undici-types
+    filter: ['**/*.d.ts', package.json]
+win:
+  executableName: script-box
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  artifactName: ${name}-${version}-setup.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+mac:
+  category: public.app-category.developer-tools
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
+dmg:
+  artifactName: ${name}-${version}-${arch}.${ext}
+linux:
+  executableName: script-box
+  category: Development
+  maintainer: Script Box Contributors <noreply@scriptbox.app>
+  synopsis: Out-of-the-box script runner
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+appImage:
+  artifactName: ${name}-${version}-${arch}.${ext}
+deb:
+  artifactName: ${name}-${version}-${arch}.${ext}
+npmRebuild: true
+publish:
+  provider: github
+  releaseType: draft

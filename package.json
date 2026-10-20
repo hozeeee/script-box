@@ -1,0 +1,90 @@
+{
+  "name": "script-box",
+  "productName": "Script Box",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.34.7",
+  "description": "Out-of-the-box script runner. Pick a script and run it, no runtime installation required.",
+  "author": "Script Box Contributors",
+  "license": "MIT",
+  "homepage": "https://github.com/<owner>/script-box",
+  "main": "./out/main/index.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
+    "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
+    "typecheck": "pnpm typecheck:node && pnpm typecheck:web",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "vitest run",
+    "build:win": "pnpm build && electron-builder --win",
+    "build:mac": "pnpm build && electron-builder --mac",
+    "build:linux": "pnpm build && electron-builder --linux",
+    "postinstall": "electron-builder install-app-deps",
+    "prepare": "simple-git-hooks"
+  },
+  "dependencies": {
+    "@electron-toolkit/utils": "^4.0.0",
+    "electron-updater": "^6.8.9",
+    "esbuild": "^0.28.2",
+    "extract-zip": "^2.0.1",
+    "node-pty": "^1.1.0",
+    "tar": "^7.5.22",
+    "tree-kill": "^1.2.2"
+  },
+  "devDependencies": {
+    "@ant-design/icons": "^6.3.4",
+    "@antfu/eslint-config": "^9.5.1",
+    "@electron-toolkit/tsconfig": "^2.0.0",
+    "@eslint-react/eslint-plugin": "^5.28.1",
+    "@monaco-editor/react": "^4.7.0",
+    "@types/node": "^22.19.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
+    "antd": "^6.6.6",
+    "electron": "^44.9.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^6.0.0",
+    "eslint": "^10.0.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "i18next": "^26.5.2",
+    "lint-staged": "^17.6.0",
+    "monaco-editor": "^0.57.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-i18next": "^17.1.0",
+    "react-router": "^8.4.0",
+    "simple-git-hooks": "^2.14.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5",
+    "zustand": "^5.0.15"
+  },
+  "pnpm": {
+    "supportedArchitectures": {
+      "os": ["current"],
+      "cpu": ["current", "x64", "arm64"]
+    },
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild",
+      "node-pty",
+      "simple-git-hooks"
+    ]
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint-staged"
+  },
+  "lint-staged": {
+    "*": "eslint --fix"
+  }
+}
