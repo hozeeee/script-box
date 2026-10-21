@@ -117,6 +117,9 @@
   },
   "editor": {
     "scripts": "Scripts",
+    "files": "Files",
+    "unsupportedFile": "This file cannot be opened in the app yet",
+    "viewExternally": "You can view \"{{name}}\" in the system file manager. Reveal it now?",
     "run": "Run",
     "stop": "Stop",
     "unsaved": "Unsaved",
@@ -135,6 +138,7 @@
     "imported_one": "Imported {{count}} script",
     "imported_other": "Imported {{count}} scripts",
     "empty": "No scripts",
+    "emptyDirectory": "Empty directory",
     "dropHint": "Drop .js / .ts files here to import",
     "dropHere": "Release to import",
     "namePlaceholder": "Script name",
@@ -148,7 +152,9 @@
   },
   "npmScripts": {
     "title": "NPM Scripts",
-    "empty": "No scripts in package.json"
+    "empty": "No scripts in the project's package.json files",
+    "root": "Root directory",
+    "truncated": "Subproject scan limit reached; only some commands are shown"
   },
   "runConfig": {
     "open": "Run configuration",

@@ -5,6 +5,7 @@ import { depsService } from '../services/deps'
 import { runnerService } from '../services/runner'
 import { scriptService } from '../services/script'
 import { assertProjectDir, normalizeProjectPath, readProjectInfo, spaceService } from '../services/space'
+import { scanProjectScripts } from '../services/space/project'
 import { handle } from './helpers'
 
 function assertIdle(id: string): void {
@@ -37,7 +38,8 @@ export function registerSpaceIpc(): void {
     if (!space.projectPath)
       throw new AppError('INVALID_PROJECT', undefined, { path: '' })
     await assertProjectDir(space.projectPath)
-    return { ...(await readProjectInfo(space.projectPath)), truncated: scriptService.wasTruncated(id) }
+    const [info, commands] = await Promise.all([readProjectInfo(space.projectPath), scanProjectScripts(space.projectPath)])
+    return { ...info, ...commands, truncated: scriptService.wasTruncated(id) }
   })
 
   handle('space:inspect-project', async (path) => {

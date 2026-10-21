@@ -117,6 +117,9 @@
   },
   "editor": {
     "scripts": "脚本",
+    "files": "文件",
+    "unsupportedFile": "暂不支持在应用内打开此文件",
+    "viewExternally": "「{{name}}」可在系统文件管理器中查看。是否前往？",
     "run": "运行",
     "stop": "停止",
     "unsaved": "未保存",
@@ -134,6 +137,7 @@
     "import": "导入脚本",
     "imported": "已导入 {{count}} 个脚本",
     "empty": "暂无脚本",
+    "emptyDirectory": "目录为空",
     "dropHint": "可把 .js / .ts 文件拖到这里导入",
     "dropHere": "松开以导入脚本",
     "namePlaceholder": "脚本名称",
@@ -147,7 +151,9 @@
   },
   "npmScripts": {
     "title": "NPM Scripts",
-    "empty": "package.json 中没有 scripts"
+    "empty": "工程的 package.json 中没有 scripts",
+    "root": "根目录",
+    "truncated": "子工程扫描达到上限，仅展示部分命令"
   },
   "runConfig": {
     "open": "运行配置",

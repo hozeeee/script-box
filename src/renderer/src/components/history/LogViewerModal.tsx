@@ -4,6 +4,7 @@ import { invoke } from '@renderer/api'
 import { formatError } from '@renderer/api/errors'
 import LogTerminal from '@renderer/components/terminal/LogTerminal'
 import { formatTime } from '@renderer/utils/format'
+import { scriptLabel } from '@shared/types'
 import { Modal, Spin } from 'antd'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -36,7 +37,7 @@ export default function LogViewerModal({ spaceId, record, onClose }: Props): Rea
   return (
     <Modal
       open={!!record}
-      title={record ? `${record.script} · ${formatTime(record.startedAt)}` : ''}
+      title={record ? `${scriptLabel(record.script)} · ${formatTime(record.startedAt)}` : ''}
       width="80%"
       footer={null}
       destroyOnHidden

@@ -85,7 +85,17 @@ export const useDocumentsStore = create<DocumentsState>((set, get) => ({
     set({ docs: { ...get().docs, [docKey(spaceId, name)]: doc } })
   },
   async sync(spaceId, files) {
-    const stale = files.filter((file) => {
+    // 按需文件树可打开后台扫描忽略的文件，刷新时同样检查这些已打开文档。
+    const listed = new Set(files.map(file => file.name))
+    const extra = await Promise.all(Object.keys(get().docs)
+      .filter(key => key.startsWith(`${spaceId}/`) && !listed.has(key.slice(spaceId.length + 1)))
+      .map(async (key) => {
+        const name = key.slice(spaceId.length + 1)
+        const mtime = await invoke('script:mtime', spaceId, name).catch(() => null)
+        return mtime === null ? null : { name, mtime }
+      }))
+    const candidates = [...files, ...extra.filter((file): file is { name: string, mtime: number } => file !== null)]
+    const stale = candidates.filter((file) => {
       const doc = get().docs[docKey(spaceId, file.name)]
       return doc && !isDirty(doc) && changedSince(file.mtime, doc.mtime)
     })

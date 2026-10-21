@@ -29,6 +29,9 @@ export interface WalkOptions {
   accept: (relative: string) => boolean
   maxDepth?: number
   maxFiles?: number
+  maxDirectories?: number
+  /** 命令扫描不受 .gitignore 影响，例如被忽略的本地子工程 */
+  respectGitignore?: boolean
 }
 
 export interface WalkResult {
@@ -54,12 +57,18 @@ async function loadGitignore(root: string): Promise<Ignore> {
 export async function walkProject(root: string, options: WalkOptions): Promise<WalkResult> {
   const maxDepth = options.maxDepth ?? MAX_WALK_DEPTH
   const maxFiles = options.maxFiles ?? MAX_WALK_FILES
-  const ig = await loadGitignore(root)
+  const ig = options.respectGitignore === false ? ignore() : await loadGitignore(root)
+  const maxDirectories = options.maxDirectories ?? 10000
+  let visited = 0
   const files: string[] = []
   let truncated = false
   let full = false
 
   const visit = async (dir: string, prefix: string, depth: number): Promise<void> => {
+    if (visited++ >= maxDirectories) {
+      truncated = full = true
+      return
+    }
     let entries: Dirent[]
     try {
       entries = await readdir(dir, { withFileTypes: true })

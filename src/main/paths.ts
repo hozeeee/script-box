@@ -1,5 +1,5 @@
 import type { Space } from '@shared/types'
-import { join } from 'node:path'
+import { isAbsolute, join, relative, win32 } from 'node:path'
 import { AppError } from '@shared/errors'
 import { app } from 'electron'
 
@@ -62,6 +62,17 @@ export function spaceWorkDir(space: Space): string {
 /** Directory script names are relative to */
 export function spaceScriptsDir(space: Space): string {
   return space.projectPath ?? spacePaths.scripts(space.id)
+}
+
+/** 工程内任意文件类型的相对路径，禁止绝对路径和路径穿越 */
+export function projectEntryPath(root: string, name: string): string {
+  if (name && (isAbsolute(name) || win32.isAbsolute(name) || name.includes('\\') || name.includes('\0') || name.split('/').some(part => !part || part === '.' || part === '..')))
+    throw new AppError('INVALID_SCRIPT_NAME', undefined, { name })
+  const path = join(root, ...name.split('/'))
+  const rel = relative(root, path)
+  if (rel === '..' || rel.startsWith(`..${process.platform === 'win32' ? '\\' : '/'}`) || isAbsolute(rel))
+    throw new AppError('INVALID_SCRIPT_NAME', undefined, { name })
+  return path
 }
 
 export const workPaths = {

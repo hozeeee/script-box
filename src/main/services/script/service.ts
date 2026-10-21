@@ -1,12 +1,14 @@
-import type { RunConfig, ScriptFile, ScriptSources, Space } from '@shared/types'
+import type { ProjectEntry, RunConfig, ScriptFile, ScriptSources, Space } from '@shared/types'
 import { copyFile, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, relative } from 'node:path'
 import { AppError } from '@shared/errors'
-import { isNpmScriptKey, NPM_SCRIPT_PREFIX } from '@shared/types'
+import { isNpmScriptKey } from '@shared/types'
 import { spacePaths, spaceScriptsDir } from '../../paths'
 import { ensureDir, exists } from '../../utils/fs'
 import { assertProjectDir, spaceService } from '../space'
+import { resolveProjectScript } from '../space/project'
 import { isDeclarationFile, isScriptFile, isValidScriptName, isValidScriptPath, languageOf, uniqueName } from './naming'
+import { listProjectEntries, resolveProjectEntry } from './project-files'
 import { templateFor } from './templates'
 import { walkProject } from './walk'
 
@@ -53,6 +55,23 @@ class ScriptService {
         }),
     )
     return files.sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  async entries(spaceId: string, directory: string): Promise<ProjectEntry[]> {
+    const space = await this.workingSpace(spaceId)
+    if (!space.projectPath)
+      throw new AppError('INVALID_PROJECT', undefined, { path: '' })
+    return listProjectEntries(space.projectPath, directory)
+  }
+
+  async revealPath(spaceId: string, name: string): Promise<string> {
+    const space = await this.workingSpace(spaceId)
+    if (!space.projectPath)
+      throw new AppError('INVALID_PROJECT', undefined, { path: '' })
+    const path = await resolveProjectEntry(space.projectPath, name)
+    if (!(await exists(path)))
+      throw new AppError('SCRIPT_NOT_FOUND', undefined, { name })
+    return path
   }
 
   async read(spaceId: string, name: string): Promise<string> {
@@ -133,8 +152,9 @@ class ScriptService {
     const space = await spaceService.get(spaceId)
     // package.json scripts (`npm:<name>`) store their config under the run key
     if (isNpmScriptKey(name)) {
-      if (!space.projectPath || name.length <= NPM_SCRIPT_PREFIX.length || name.length > 256)
+      if (!space.projectPath)
         throw new AppError('INVALID_SCRIPT_NAME', undefined, { name })
+      await resolveProjectScript(space.projectPath, name)
     }
     else {
       assertName(space, name)

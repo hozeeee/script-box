@@ -1,8 +1,11 @@
-import type { PackageManager, ProjectInfo } from '@shared/types'
+import type { PackageManager, ProjectInfo, ProjectScriptGroup } from '@shared/types'
 import { readFile, realpath, stat } from 'node:fs/promises'
-import { isAbsolute, join } from 'node:path'
+import { dirname, isAbsolute, join } from 'node:path'
 import { AppError } from '@shared/errors'
+import { parseNpmScriptKey } from '@shared/types'
 import { exists, readJson } from '../../utils/fs'
+import { resolveProjectDirectory } from '../script/project-files'
+import { walkProject } from '../script/walk'
 
 interface ProjectPackageJson {
   name?: string
@@ -28,16 +31,22 @@ export function parsePackageManagerField(value: unknown): PackageManager | null 
 }
 
 /** `packageManager` field first, then lockfiles, npm when nothing hints otherwise */
-export async function detectPackageManager(dir: string): Promise<PackageManager> {
-  const pkg = await readJson<ProjectPackageJson>(join(dir, 'package.json'), {})
-  const declared = parsePackageManagerField(pkg.packageManager)
-  if (declared)
-    return declared
-  for (const [file, manager] of LOCKFILES) {
-    if (await exists(join(dir, file)))
-      return manager
+export async function detectPackageManager(dir: string, root = dir): Promise<PackageManager> {
+  let current = dir
+  while (true) {
+    const pkg = await readJson<ProjectPackageJson>(join(current, 'package.json'), {})
+    const declared = parsePackageManagerField(pkg.packageManager)
+    if (declared)
+      return declared
+    for (const [file, manager] of LOCKFILES) {
+      if (await exists(join(current, file)))
+        return manager
+    }
+    const parent = dirname(current)
+    if (current === root || parent === current)
+      return 'npm'
+    current = parent
   }
-  return 'npm'
 }
 
 /** Normalizes `22`, `v22.11.0`, `>=20.10` ... to `22` / `v22.11.0` / `20`; aliases like `lts/*` give null */
@@ -76,6 +85,39 @@ export async function readProjectInfo(dir: string): Promise<Omit<ProjectInfo, 't
     packageName: typeof pkg.name === 'string' && pkg.name ? pkg.name : null,
     pnp: (await exists(join(dir, '.pnp.cjs'))) || (await exists(join(dir, '.pnp.js'))),
   }
+}
+
+/** 递归收集工程自己的 package.json；跳过依赖和构建目录，不跟随符号链接 */
+export async function scanProjectScripts(root: string): Promise<{ scriptGroups: ProjectScriptGroup[], scriptsTruncated: boolean }> {
+  const walked = await walkProject(root, {
+    accept: name => name === 'package.json' || name.endsWith('/package.json'),
+    respectGitignore: false,
+    maxFiles: 1000,
+  })
+  const scriptGroups: ProjectScriptGroup[] = []
+  for (const file of walked.files) {
+    const directory = file === 'package.json' ? '' : file.slice(0, -'/package.json'.length)
+    const dir = await resolveProjectDirectory(root, directory).catch(() => null)
+    if (!dir)
+      continue
+    const info = await readProjectInfo(dir)
+    if (!Object.keys(info.scripts).length)
+      continue
+    scriptGroups.push({ directory, scripts: info.scripts, packageName: info.packageName, packageManager: await detectPackageManager(dir, root) })
+  }
+  return { scriptGroups, scriptsTruncated: walked.truncated }
+}
+
+/** 运行或保存配置前重新读取目标目录，避免执行缓存或越界命令 */
+export async function resolveProjectScript(root: string, key: string): Promise<{ cwd: string, name: string, packageManager: PackageManager }> {
+  const target = key.length <= 4096 ? parseNpmScriptKey(key) : null
+  if (!target)
+    throw new AppError('INVALID_SCRIPT_NAME', undefined, { name: key })
+  const cwd = await resolveProjectDirectory(root, target.directory)
+  const info = await readProjectInfo(cwd)
+  if (!Object.hasOwn(info.scripts, target.name))
+    throw new AppError('SCRIPT_NOT_FOUND', undefined, { name: key })
+  return { cwd, name: target.name, packageManager: await detectPackageManager(cwd, root) }
 }
 
 async function isDirectory(path: string): Promise<boolean> {

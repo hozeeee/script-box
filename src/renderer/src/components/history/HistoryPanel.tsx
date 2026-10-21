@@ -5,6 +5,7 @@ import { ClearOutlined, DeleteOutlined, FileTextOutlined, ReloadOutlined } from 
 import { invoke, on } from '@renderer/api'
 import { formatError } from '@renderer/api/errors'
 import { formatDuration, formatTime } from '@renderer/utils/format'
+import { scriptLabel } from '@shared/types'
 import { App, Button, Flex, Popconfirm, Table, Tag, Tooltip } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -63,7 +64,7 @@ export default function HistoryPanel({ spaceId }: { spaceId: string }): ReactNod
       width: 100,
       render: (status: RunStatus) => <Tag color={STATUS_COLORS[status]}>{t(`history.statuses.${status}`)}</Tag>,
     },
-    { title: t('history.script'), dataIndex: 'script', ellipsis: true },
+    { title: t('history.script'), dataIndex: 'script', ellipsis: true, render: scriptLabel },
     {
       title: t('history.args'),
       dataIndex: 'args',

@@ -1,8 +1,11 @@
+import { shell } from 'electron'
 import { scriptService } from '../services/script'
 import { handle } from './helpers'
 
 export function registerScriptIpc(): void {
   handle('script:list', spaceId => scriptService.list(spaceId))
+  handle('script:entries', (spaceId, directory) => scriptService.entries(spaceId, directory))
+  handle('script:reveal', async (spaceId, name) => shell.showItemInFolder(await scriptService.revealPath(spaceId, name)))
   handle('script:read', (spaceId, name) => scriptService.read(spaceId, name))
   handle('script:mtime', (spaceId, name) => scriptService.mtime(spaceId, name))
   handle('script:sources', spaceId => scriptService.sources(spaceId))

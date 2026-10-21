@@ -4,13 +4,14 @@ import { invoke } from '@renderer/api'
 import { useMonacoTypes } from '@renderer/components/editor/useMonacoTypes'
 import { useProjectModels } from '@renderer/components/editor/useProjectModels'
 import NpmScriptsPanel from '@renderer/components/script/NpmScriptsPanel'
+import ProjectFileTree from '@renderer/components/script/ProjectFileTree'
 import RunConfigDrawer from '@renderer/components/script/RunConfigDrawer'
 import ScriptNameModal from '@renderer/components/script/ScriptNameModal'
 import ScriptTree from '@renderer/components/script/ScriptTree'
 import { useDocumentsStore } from '@renderer/stores/documents'
 import { runKey, useRunsStore } from '@renderer/stores/runs'
-import { Alert, Empty, Splitter } from 'antd'
-import { useCallback, useEffect, useState } from 'react'
+import { Empty, Splitter } from 'antd'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
 import BottomPanel, { DEPS_TAB } from './BottomPanel'
@@ -30,7 +31,11 @@ export default function EditorWorkspace({ space }: { space: Space }): ReactNode 
   const [configuring, setConfiguring] = useState<string | null>(null)
   const [projectInfo, setProjectInfo] = useState<{ spaceId: string, info: ProjectInfo } | null>(null)
   const selected = params.get('script')
-  const selectedFile = scripts.find(file => file.name === selected)
+  // 工程树按需加载，忽略目录中的脚本也能打开，不依赖后台源码扫描列表。
+  const selectedFile = useMemo(() => scripts.find(file => file.name === selected)
+    ?? (isProject && selected && /\.[cm]?[jt]s$/i.test(selected) && !/\.d\.[cm]?ts$/i.test(selected)
+      ? { name: selected, language: /\.[cm]?ts$/i.test(selected) ? 'typescript' as const : 'javascript' as const, size: 0, mtime: 0 }
+      : undefined), [scripts, isProject, selected])
   const running = useRunsStore((state) => {
     const runId = selected ? state.latest[runKey(space.id, selected)] : undefined
     return !!runId && state.sessions[runId]?.record.status === 'running'
@@ -79,52 +84,66 @@ export default function EditorWorkspace({ space }: { space: Space }): ReactNode 
     onStarted: record => setBottomTab(record.id),
   })
 
-  // Open the first script when nothing (or a vanished file) is selected. Projects don't
-  // auto-open an arbitrary file, they only drop a selection that no longer exists.
+  // 普通空间自动选择首个脚本，工程空间的选择由按需加载的文件树管理。
   useEffect(() => {
     if (!loaded || selectedFile)
       return
     if (!isProject && scripts.length)
       setParams({ script: scripts[0]!.name }, { replace: true })
-    else if (isProject && selected && !error)
-      setParams({}, { replace: true })
   }, [loaded, scripts, selected, selectedFile, setParams, isProject, error])
+
+  const treeActions = {
+    onCreate: (dir?: string) => setNameDialog({ open: true, mode: 'create', dir }),
+    onRefresh: () => void refresh(),
+    onRun: (name: string) => void actions.run(name),
+    onConfigure: setConfiguring,
+    onRename: (name: string) => setNameDialog({ open: true, mode: 'rename', name }),
+    onRemove: actions.remove,
+  }
 
   return (
     <>
       <Splitter style={{ flex: 1, minHeight: 0 }}>
         <Splitter.Panel defaultSize={isProject ? 260 : 220} min={160} max="40%">
-          <ScriptTree
-            spaceId={space.id}
-            scripts={scripts}
-            selected={selected}
-            project={isProject}
-            error={error}
-            footer={isProject && (
-              <>
-                {info?.truncated && <Alert type="warning" showIcon banner title={t('script.truncated')} />}
-                {info && (
-                  <NpmScriptsPanel
-                    spaceId={space.id}
-                    info={info}
-                    onRun={key => void actions.run(key)}
-                    onStop={actions.stop}
-                    onConfigure={setConfiguring}
-                  />
-                )}
-              </>
-            )}
-            onSelect={select}
-            onCreate={dir => setNameDialog({ open: true, mode: 'create', dir })}
-            onRefresh={() => void refresh()}
-            onImported={(names) => {
-              void reload().then(() => names[0] && select(names[0]))
-            }}
-            onRun={name => void actions.run(name)}
-            onConfigure={setConfiguring}
-            onRename={name => setNameDialog({ open: true, mode: 'rename', name })}
-            onRemove={actions.remove}
-          />
+          {isProject
+            ? (
+                <Splitter orientation="vertical">
+                  <Splitter.Panel min={100}>
+                    <ProjectFileTree
+                      key={`${space.id}/${space.projectPath}`}
+                      spaceId={space.id}
+                      selected={selected}
+                      refreshToken={scripts}
+                      onSelect={file => select(file.name)}
+                      {...treeActions}
+                    />
+                  </Splitter.Panel>
+                  <Splitter.Panel defaultSize="35%" min={100}>
+                    {info && (
+                      <NpmScriptsPanel
+                        spaceId={space.id}
+                        info={info}
+                        onRun={key => void actions.run(key)}
+                        onStop={actions.stop}
+                        onConfigure={setConfiguring}
+                      />
+                    )}
+                  </Splitter.Panel>
+                </Splitter>
+              )
+            : (
+                <ScriptTree
+                  spaceId={space.id}
+                  scripts={scripts}
+                  selected={selected}
+                  error={error}
+                  onSelect={select}
+                  onImported={(names) => {
+                    void reload().then(() => names[0] && select(names[0]))
+                  }}
+                  {...treeActions}
+                />
+              )}
         </Splitter.Panel>
         <Splitter.Panel>
           <Splitter orientation="vertical">

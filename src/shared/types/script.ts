@@ -12,6 +12,14 @@ export interface ScriptFile {
   mtime: number
 }
 
+export interface ProjectEntry {
+  /** 相对于工程根目录的 POSIX 路径 */
+  name: string
+  kind: 'directory' | 'file' | 'symlink'
+  /** 仅支持编辑和运行的普通脚本文件提供此字段 */
+  script?: ScriptFile
+}
+
 export interface ScriptSource {
   name: string
   content: string

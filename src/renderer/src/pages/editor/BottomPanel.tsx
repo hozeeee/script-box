@@ -6,6 +6,7 @@ import DepsPanel from '@renderer/components/deps/DepsPanel'
 import HistoryPanel from '@renderer/components/history/HistoryPanel'
 import RunTerminal from '@renderer/components/terminal/RunTerminal'
 import { useRunsStore } from '@renderer/stores/runs'
+import { scriptLabel } from '@shared/types'
 import { Badge, Tabs } from 'antd'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -43,7 +44,7 @@ export default function BottomPanel({ spaceId, activeKey, onChange }: Props): Re
   const items: TabsProps['items'] = [
     ...runs.map(record => ({
       key: record.id,
-      label: <Badge status={BADGE_STATUS[record.status]} text={record.script} />,
+      label: <Badge status={BADGE_STATUS[record.status]} text={scriptLabel(record.script)} />,
       closable: record.status !== 'running',
       children: <RunTerminal runId={record.id} />,
     })),

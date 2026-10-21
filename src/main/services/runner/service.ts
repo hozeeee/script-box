@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto'
 import { EventEmitter } from 'node:events'
 import { relative } from 'node:path'
 import { AppError } from '@shared/errors'
-import { isNpmScriptKey, NPM_SCRIPT_PREFIX } from '@shared/types'
+import { isNpmScriptKey } from '@shared/types'
 import { spawn } from 'node-pty'
 import treeKill from 'tree-kill'
 import { spaceWorkDir } from '../../paths'
@@ -16,7 +16,8 @@ import { runtimeService } from '../runtime'
 import { buildProcessEnv } from '../runtime/env'
 import { scriptService } from '../script'
 import { buildNetworkEnv, settingsStore } from '../settings'
-import { assertProjectDir, detectPackageManager, readProjectInfo, spaceService } from '../space'
+import { assertProjectDir, spaceService } from '../space'
+import { resolveProjectScript } from '../space/project'
 import { parseArgs } from './args'
 import { historyStore } from './history'
 import { resolveLanguageRunner } from './languages'
@@ -32,6 +33,7 @@ interface ResolvedCommand extends PreparedCommand {
   /** Command line echoed before the output */
   shown: string
   env: Record<string, string>
+  cwd: string
 }
 
 const gray = (text: string): string => `\x1B[90m${text}\x1B[0m\r\n`
@@ -64,7 +66,7 @@ class RunnerService extends EventEmitter<{ output: [RunOutputEvent], exit: [RunR
     const args = parseArgs(runConfig.args)
     const network = buildNetworkEnv(settingsStore.get().network)
     const prepared = isNpmScriptKey(script)
-      ? await this.prepareNpmScript(space, script.slice(NPM_SCRIPT_PREFIX.length), args, network)
+      ? await this.prepareNpmScript(space, script, args, network)
       : await this.prepareFile(space, script, args)
     const scriptEnv = Object.fromEntries(runConfig.env.filter(item => item.key.trim()).map(item => [item.key.trim(), item.value]))
     const env = buildProcessEnv(
@@ -92,7 +94,7 @@ class RunnerService extends EventEmitter<{ output: [RunOutputEvent], exit: [RunR
       name: 'xterm-256color',
       cols: Math.max(options.cols, 20),
       rows: Math.max(options.rows, 5),
-      cwd: spaceWorkDir(space),
+      cwd: prepared.cwd,
       env,
     })
     const run: ActiveRun = { record, pty, log, stopRequested: false }
@@ -110,25 +112,24 @@ class RunnerService extends EventEmitter<{ output: [RunOutputEvent], exit: [RunR
       throw new AppError('SCRIPT_NOT_FOUND', undefined, { name: script })
     const prepared = await resolveLanguageRunner(script).prepare({ space, script, source, args })
     const shown = relative(spaceWorkDir(space), source).split('\\').join('/')
-    return { ...prepared, shown, env: {} }
+    return { ...prepared, shown, env: {}, cwd: spaceWorkDir(space) }
   }
 
-  /** `<pm> run <name>` in the project directory with the detected package manager */
-  private async prepareNpmScript(space: Space, name: string, args: string[], network: Record<string, string>): Promise<ResolvedCommand> {
+  /** 在命令所属的 package.json 目录执行，子工程优先使用自身的包管理器 */
+  private async prepareNpmScript(space: Space, key: string, args: string[], network: Record<string, string>): Promise<ResolvedCommand> {
     if (!space.projectPath)
-      throw new AppError('UNSUPPORTED_SCRIPT', undefined, { name: `${NPM_SCRIPT_PREFIX}${name}` })
-    const info = await readProjectInfo(space.projectPath)
-    if (!Object.hasOwn(info.scripts, name))
-      throw new AppError('SCRIPT_NOT_FOUND', undefined, { name: `${NPM_SCRIPT_PREFIX}${name}` })
+      throw new AppError('UNSUPPORTED_SCRIPT', undefined, { name: key })
+    const { cwd, name, packageManager } = await resolveProjectScript(space.projectPath, key)
     const runtime = await runtimeService.resolve(space.nodeVersion)
-    const launcher = await resolvePackageManager(await detectPackageManager(space.projectPath), runtime)
+    const launcher = await resolvePackageManager(packageManager, runtime)
     return {
       command: launcher.command,
       args: [...launcher.prefix, ...runScriptArgs(launcher.manager, name, args)],
       binDir: runtime.bin,
       runtimeVersion: runtime.version,
-      shown: `${launcher.manager} run ${name}`,
+      shown: `${launcher.manager} run ${name}  [${relative(space.projectPath, cwd).split('\\').join('/') || '.'}]`,
       env: { ...registryEnv(network), ...launcher.env },
+      cwd,
     }
   }
 

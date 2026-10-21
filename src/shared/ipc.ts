@@ -7,6 +7,7 @@ import type {
   DepTask,
   DepTaskEvent,
   InstalledRuntime,
+  ProjectEntry,
   ProjectInfo,
   RemoteNodeVersion,
   RunConfig,
@@ -56,6 +57,9 @@ export interface IpcInvokeMap {
   'space:open-dir': (id: string) => void
 
   'script:list': (spaceId: string) => ScriptFile[]
+  /** 工程目录逐层加载所有文件，以及在系统文件管理器定位条目 */
+  'script:entries': (spaceId: string, directory: string) => ProjectEntry[]
+  'script:reveal': (spaceId: string, name: string) => void
   'script:read': (spaceId: string, name: string) => string
   /** Modification time on disk, used to detect edits made outside Script Box */
   'script:mtime': (spaceId: string, name: string) => number

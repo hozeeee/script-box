@@ -2,8 +2,8 @@ import type { ProjectInfo } from '@shared/types'
 import type { ReactNode } from 'react'
 import { CaretRightOutlined, CodeOutlined, SettingOutlined, StopOutlined } from '@ant-design/icons'
 import { runKey, useRunsStore } from '@renderer/stores/runs'
-import { NPM_SCRIPT_PREFIX } from '@shared/types'
-import { Badge, Button, Flex, Tag, Tooltip, Typography } from 'antd'
+import { npmScriptKey } from '@shared/types'
+import { Alert, Badge, Button, Collapse, Flex, Tag, Tooltip, Typography } from 'antd'
 import { useTranslation } from 'react-i18next'
 
 interface Props {
@@ -20,44 +20,57 @@ export default function NpmScriptsPanel({ spaceId, info, onRun, onStop, onConfig
   const { t } = useTranslation()
   const sessions = useRunsStore(state => state.sessions)
   const latest = useRunsStore(state => state.latest)
-  const names = Object.keys(info.scripts)
+  const groups = info.scriptGroups ?? [{ directory: '', packageName: info.packageName, packageManager: info.packageManager, scripts: info.scripts }]
+  const nonempty = groups.filter(group => Object.keys(group.scripts).length > 0)
 
   const isRunning = (key: string): boolean =>
     sessions[latest[runKey(spaceId, key)] ?? '']?.record.status === 'running'
 
   return (
-    <Flex vertical style={{ maxHeight: '40%', minHeight: 0, borderTop: '1px solid var(--ant-color-split)' }}>
+    <Flex vertical className="fill">
       <Flex align="center" justify="space-between" style={{ padding: '6px 8px 6px 16px' }}>
         <Typography.Text strong>{t('npmScripts.title')}</Typography.Text>
         <Tag style={{ margin: 0 }}>{info.packageManager}</Tag>
       </Flex>
-      <div style={{ overflow: 'auto', paddingBottom: 6 }}>
-        {names.length === 0 && (
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', paddingBottom: 6 }}>
+        {info.scriptsTruncated && <Alert type="warning" showIcon banner title={t('npmScripts.truncated')} />}
+        {nonempty.length === 0 && (
           <Typography.Text type="secondary" style={{ fontSize: 12, padding: '0 16px' }}>{t('npmScripts.empty')}</Typography.Text>
         )}
-        {names.map((name) => {
-          const key = `${NPM_SCRIPT_PREFIX}${name}`
-          const running = isRunning(key)
-          return (
-            <Tooltip key={name} title={info.scripts[name]} placement="right" mouseEnterDelay={0.6}>
-              <div className="script-item" onDoubleClick={() => !running && onRun(key)}>
-                <CodeOutlined style={{ fontSize: 12, color: 'var(--ant-color-text-tertiary)' }} />
-                <span className="script-item-name">{name}</span>
-                {running && <Badge status="processing" />}
-                <Button
-                  type="text"
-                  size="small"
-                  title={t('runConfig.open')}
-                  icon={<SettingOutlined />}
-                  onClick={() => onConfigure(key)}
-                />
-                {running
-                  ? <Button type="text" size="small" danger title={t('editor.stop')} icon={<StopOutlined />} onClick={() => onStop(key)} />
-                  : <Button type="text" size="small" title={t('editor.run')} icon={<CaretRightOutlined />} onClick={() => onRun(key)} />}
-              </div>
-            </Tooltip>
-          )
-        })}
+        <Collapse
+          ghost
+          size="small"
+          defaultActiveKey={['']}
+          items={nonempty.map(group => ({
+            key: group.directory,
+            label: <Tooltip title={group.packageName}><Typography.Text ellipsis>{group.directory || t('npmScripts.root')}</Typography.Text></Tooltip>,
+            extra: <Tag style={{ margin: 0 }}>{group.packageManager}</Tag>,
+            styles: { body: { padding: 0 } },
+            children: Object.keys(group.scripts).map((name) => {
+              const key = npmScriptKey(group.directory, name)
+              const running = isRunning(key)
+              return (
+                <Tooltip key={key} title={group.scripts[name]} placement="right" mouseEnterDelay={0.6}>
+                  <div className="script-item" onDoubleClick={() => !running && onRun(key)}>
+                    <CodeOutlined style={{ fontSize: 12, color: 'var(--ant-color-text-tertiary)' }} />
+                    <span className="script-item-name">{name}</span>
+                    {running && <Badge status="processing" />}
+                    <Button
+                      type="text"
+                      size="small"
+                      title={t('runConfig.open')}
+                      icon={<SettingOutlined />}
+                      onClick={() => onConfigure(key)}
+                    />
+                    {running
+                      ? <Button type="text" size="small" danger title={t('editor.stop')} icon={<StopOutlined />} onClick={() => onStop(key)} />
+                      : <Button type="text" size="small" title={t('editor.run')} icon={<CaretRightOutlined />} onClick={() => onRun(key)} />}
+                  </div>
+                </Tooltip>
+              )
+            }),
+          }))}
+        />
       </div>
     </Flex>
   )

@@ -4,6 +4,7 @@ import { invoke } from '@renderer/api'
 import { formatError } from '@renderer/api/errors'
 import EnvEditor from '@renderer/components/common/EnvEditor'
 import { useSpacesStore } from '@renderer/stores/spaces'
+import { scriptLabel } from '@shared/types'
 import { App, Button, Drawer, Form, Input } from 'antd'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -46,7 +47,7 @@ export default function RunConfigDrawer({ open, space, script, onClose }: Props)
   return (
     <Drawer
       open={open}
-      title={t('runConfig.title', { name: script })}
+      title={t('runConfig.title', { name: scriptLabel(script) })}
       size={480}
       onClose={onClose}
       destroyOnHidden

@@ -1,8 +1,9 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { npmScriptKey } from '@shared/types'
 import { afterEach, describe, expect, it } from 'vitest'
-import { detectPackageManager, parseNodeVersionHint, parsePackageManagerField, readProjectInfo } from './project'
+import { detectPackageManager, parseNodeVersionHint, parsePackageManagerField, readProjectInfo, resolveProjectScript, scanProjectScripts } from './project'
 
 const roots: string[] = []
 
@@ -36,6 +37,52 @@ describe('project package manager', () => {
     expect(parsePackageManagerField(' pnpm@10.0.0+sha512.x ')).toBe('pnpm')
     expect(parsePackageManagerField('deno@2')).toBeNull()
     expect(parsePackageManagerField(null)).toBeNull()
+  })
+})
+
+describe('nested project scripts', () => {
+  it('finds nested and ignored local packages, inherits nearest manager, excludes dependencies', async () => {
+    const root = await fixture({ packageManager: 'pnpm@10', scripts: { dev: 'root-command' } })
+    const packages = {
+      'packages/web': { scripts: { dev: 'web-command' } },
+      'packages/server': { packageManager: 'yarn@4', scripts: { dev: 'server-command' } },
+      'local': { scripts: { 'check:lint': 'lint' } },
+      'node_modules/dep': { scripts: { dev: 'dependency-command' } },
+    }
+    for (const [directory, pkg] of Object.entries(packages)) {
+      await mkdir(join(root, directory), { recursive: true })
+      await writeFile(join(root, directory, 'package.json'), JSON.stringify(pkg))
+    }
+    await writeFile(join(root, '.gitignore'), 'local/\n')
+    const result = await scanProjectScripts(root)
+    expect(result.scriptsTruncated).toBe(false)
+    expect(result.scriptGroups.map(group => [group.directory, group.packageManager])).toEqual([
+      ['', 'pnpm'],
+      ['local', 'pnpm'],
+      ['packages/server', 'yarn'],
+      ['packages/web', 'pnpm'],
+    ])
+    expect(await resolveProjectScript(root, npmScriptKey('packages/web', 'dev'))).toEqual({ cwd: join(root, 'packages/web'), name: 'dev', packageManager: 'pnpm' })
+    expect(await resolveProjectScript(root, 'npm:dev')).toEqual({ cwd: root, name: 'dev', packageManager: 'pnpm' })
+    await writeFile(join(root, 'packages/web', 'package-lock.json'), '{}')
+    expect((await resolveProjectScript(root, npmScriptKey('packages/web', 'dev'))).packageManager).toBe('npm')
+  })
+
+  it('rejects missing scripts, traversal and linked external packages', async () => {
+    const root = await fixture({ scripts: { dev: 'root-command' } })
+    const outside = await fixture({ scripts: { dev: 'outside-command' } })
+    await symlink(outside, join(root, 'linked'), process.platform === 'win32' ? 'junction' : 'dir')
+    expect((await scanProjectScripts(root)).scriptGroups).toHaveLength(1)
+    await expect(resolveProjectScript(root, 'npm:missing')).rejects.toMatchObject({ code: 'SCRIPT_NOT_FOUND' })
+    await expect(resolveProjectScript(root, npmScriptKey('../outside', 'dev'))).rejects.toMatchObject({ code: 'INVALID_SCRIPT_NAME' })
+    await expect(resolveProjectScript(root, npmScriptKey('linked', 'dev'))).rejects.toMatchObject({ code: 'INVALID_SCRIPT_NAME' })
+  })
+
+  it('finds commands even when the root has no scripts', async () => {
+    const root = await fixture()
+    await mkdir(join(root, 'web'))
+    await writeFile(join(root, 'web', 'package.json'), JSON.stringify({ scripts: { dev: 'vite' } }))
+    expect((await scanProjectScripts(root)).scriptGroups.map(group => group.directory)).toEqual(['web'])
   })
 })
 

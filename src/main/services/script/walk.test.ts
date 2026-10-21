@@ -39,6 +39,14 @@ describe('walkProject', () => {
     })
   })
 
+  it('can scan ignored local packages and truncates directory-only walks', async () => {
+    const path = await root()
+    await put(path, 'local/package.json')
+    await writeFile(join(path, '.gitignore'), 'local/\n')
+    expect((await walkProject(path, { accept: name => name.endsWith('package.json'), respectGitignore: false })).files).toEqual(['local/package.json'])
+    expect((await walkProject(path, { accept: () => false, maxDirectories: 1, respectGitignore: false })).truncated).toBe(true)
+  })
+
   it('marks file and depth limits as truncated', async () => {
     const path = await root()
     await put(path, 'a.ts')
