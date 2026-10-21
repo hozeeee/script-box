@@ -52,17 +52,33 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Package and publish
-        run: pnpm exec electron-builder ${{ matrix.platform }} --publish always
+      # Optional code signing. Without these secrets the app is published unsigned,
+      # and auto update on macOS is not guaranteed to work.
+      # Missing secrets expand to empty strings, and electron-builder treats an empty
+      # CSC_LINK as a path (the working directory), so only export the ones that are set.
+      - name: Configure code signing
+        shell: bash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Optional code signing. Without these secrets the app is published unsigned,
-          # and auto update on macOS is not guaranteed to work.
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: |
+          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID WIN_CSC_LINK WIN_CSC_KEY_PASSWORD; do
+            if [ -n "${!name}" ]; then
+              echo "$name<<__EOF__" >> "$GITHUB_ENV"
+              echo "${!name}" >> "$GITHUB_ENV"
+              echo "__EOF__" >> "$GITHUB_ENV"
+            fi
+          done
+          if [ -z "$CSC_LINK" ]; then
+            echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Package and publish
+        run: pnpm exec electron-builder ${{ matrix.platform }} --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
