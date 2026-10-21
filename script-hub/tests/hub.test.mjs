@@ -168,6 +168,30 @@ test('HTTP 非成功状态、连接失败和超时均返回 1', async () => {
   assert.equal((await run('http-probe', [url, '--timeout', '500'])).code, 1)
 })
 
+test('录屏在调用 ffmpeg 前校验参数，找不到 ffmpeg 时给出安装提示', async () => {
+  await writeFile(join(temporary, 'exists.mp4'), '')
+  const invalid = [
+    ['clip.avi'],
+    ['exists.mp4'],
+    ['clip.mp4', '--region', '1,2,3'],
+    ['clip.mp4', '--region', '0,0,8,8'],
+    ['clip.mp4', '--region', '0,0,100,100', '--full'],
+    ['clip.gif', '--fps', '0'],
+    ['clip.gif', '--width', '8'],
+    ['clip.gif', '--delay', '61'],
+    ['clip.mp4', '--screen', 'x'],
+  ]
+  for (const args of invalid) {
+    const result = await run('screen-record', [...args, '--ffmpeg', 'missing-ffmpeg'])
+    assert.equal(result.code, 1, args.join(' '))
+    assert.doesNotMatch(result.stderr, /未找到 ffmpeg/, args.join(' '))
+  }
+  const missing = await run('screen-record', ['clip.mp4', '--full', '--ffmpeg', 'missing-ffmpeg'])
+  assert.equal(missing.code, 1)
+  assert.match(missing.stderr, /未找到 ffmpeg（missing-ffmpeg）/)
+  assert.equal((await run('screen-record', ['--list', '--ffmpeg', 'missing-ffmpeg'])).code, 1)
+})
+
 test('在 ESM 工程中改名 .cjs 后也可独立运行', async () => {
   await mkdir(join(temporary, 'esm'))
   await writeFile(join(temporary, 'esm/package.json'), '{"type":"module"}')

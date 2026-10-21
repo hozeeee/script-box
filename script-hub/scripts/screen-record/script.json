@@ -1,0 +1,26 @@
+{
+  "id": "screen-record",
+  "title": "区域录屏",
+  "description": "调用本机 ffmpeg 录制屏幕：先截取一张屏幕画面并在浏览器中打开，拖动框选要录制的区域，再按输出文件扩展名录制为 MP4 或 GIF。支持 Windows、macOS 和 Linux X11（不支持 Wayland 会话）。需要先安装 ffmpeg；macOS 需在“屏幕录制”权限中允许运行脚本的应用。录制时在终端按 q 或回车停止，不会覆盖已有文件。",
+  "category": "媒体工具",
+  "usage": "<输出文件.mp4|.gif> [--region x,y,宽,高 | --full] [--screen 0] [--fps 30] [--duration 秒数]",
+  "options": [
+    { "name": "region", "type": "string", "short": "r", "description": "直接指定录制区域 x,y,宽,高（像素，相对所选显示器或整个桌面的左上角），跳过框选" },
+    { "name": "full", "type": "boolean", "short": "f", "description": "录制整个画面，跳过框选" },
+    { "name": "screen", "type": "string", "short": "s", "description": "显示器编号，0 为主显示器；Windows / Linux 不指定时为整个桌面，macOS 不指定时为 0" },
+    { "name": "list", "type": "boolean", "short": "l", "description": "列出可录制的显示器后退出" },
+    { "name": "fps", "type": "string", "description": "帧率 1–60；MP4 默认 30，GIF 默认 15" },
+    { "name": "duration", "type": "string", "short": "d", "description": "录制秒数，到时自动停止；不指定时按 q 或回车停止" },
+    { "name": "width", "type": "string", "short": "w", "description": "输出宽度（像素），高度按比例缩放；默认保持原尺寸" },
+    { "name": "delay", "type": "string", "default": "3", "description": "开始录制前的倒计时秒数，0–60，便于切走浏览器窗口" },
+    { "name": "hide-cursor", "type": "boolean", "description": "不录制鼠标指针" },
+    { "name": "ffmpeg", "type": "string", "description": "ffmpeg 可执行文件路径；默认从 PATH 中查找" }
+  ],
+  "examples": [
+    { "args": "\"demo.mp4\"", "description": "在浏览器中框选区域，录制为 MP4" },
+    { "args": "\"demo.gif\" --fps 12 --width 800", "description": "框选区域录制 GIF，每秒 12 帧并缩放到 800 像素宽" },
+    { "args": "\"screen.mp4\" --full --screen 1 --duration 30", "description": "录制第二块显示器 30 秒" },
+    { "args": "\"clip.gif\" --region 100,100,640,360 --delay 0", "description": "按坐标直接录制，不打开浏览器" },
+    { "args": "--list", "description": "查看显示器编号" }
+  ]
+}
