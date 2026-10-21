@@ -1,5 +1,6 @@
+import type { Space } from '@shared/types'
 import { rm } from 'node:fs/promises'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { AppError } from '@shared/errors'
 import { spacePaths } from '../../paths'
@@ -7,23 +8,28 @@ import { ensureDir } from '../../utils/fs'
 import { loadEsbuild } from '../esbuild'
 import { majorOf } from '../runtime'
 import { isTypeScript, scriptExtension } from '../script'
-import { cjsInteropPlugin } from './interop'
+import { absoluteRequirePlugin, cjsInteropPlugin } from './interop'
 
 /**
  * TypeScript scripts are bundled (local imports only, packages stay external)
- * into `.scriptbox/build`. `__dirname`, `__filename` and `import.meta.url`
- * keep pointing at the original source so relative file access still works.
- * ESM output resolves packages through {@link cjsInteropPlugin}.
+ * into `.scriptbox/build` of the space metadata folder, never into an imported
+ * project. `__dirname`, `__filename` and `import.meta.url` keep pointing at the
+ * original source so relative file access still works.
+ * ESM output resolves packages through {@link cjsInteropPlugin}; for imported
+ * projects packages are resolved to absolute locations because the output does
+ * not sit next to the project's node_modules.
  */
-export async function prepareEntry(spaceId: string, script: string, source: string, nodeVersion: string): Promise<string> {
+export async function prepareEntry(space: Space, script: string, source: string, nodeVersion: string): Promise<string> {
   if (!isTypeScript(script))
     return source
 
   const cjs = scriptExtension(script) === '.cts'
-  const outDir = await ensureDir(spacePaths.build(spaceId))
-  const outfile = join(outDir, script.replace(/\.[cm]?ts$/, cjs ? '.cjs' : '.mjs'))
+  const absolute = Boolean(space.projectPath)
+  const outDir = spacePaths.build(space.id)
+  const outfile = join(outDir, ...script.replace(/\.[cm]?ts$/, cjs ? '.cjs' : '.mjs').split('/'))
+  await ensureDir(dirname(outfile))
   const sourceUrl = pathToFileURL(source).href
-  const scriptsDir = spacePaths.scripts(spaceId)
+  const sourceDir = dirname(source)
 
   await rm(outfile, { force: true })
   try {
@@ -32,19 +38,24 @@ export async function prepareEntry(spaceId: string, script: string, source: stri
       entryPoints: [source],
       outfile,
       bundle: true,
-      ...(cjs ? { packages: 'external' as const } : { plugins: [cjsInteropPlugin(source)] }),
+      ...(cjs
+        ? absolute ? { plugins: [absoluteRequirePlugin(source)] } : { packages: 'external' as const }
+        : { plugins: [cjsInteropPlugin(source, { absolute })] }),
       platform: 'node',
       format: cjs ? 'cjs' : 'esm',
       target: `node${majorOf(nodeVersion)}`,
       sourcemap: 'inline',
       logLevel: 'silent',
       define: cjs
-        ? {}
+        ? {
+            __dirname: JSON.stringify(sourceDir),
+            __filename: JSON.stringify(source),
+          }
         : {
-            '__dirname': JSON.stringify(scriptsDir),
+            '__dirname': JSON.stringify(sourceDir),
             '__filename': JSON.stringify(source),
             'import.meta.url': JSON.stringify(sourceUrl),
-            'import.meta.dirname': JSON.stringify(scriptsDir),
+            'import.meta.dirname': JSON.stringify(sourceDir),
             'import.meta.filename': JSON.stringify(source),
           },
       // Provide a `require` for ESM output so mixed require/import code keeps working

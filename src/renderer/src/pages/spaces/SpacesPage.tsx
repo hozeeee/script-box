@@ -1,6 +1,7 @@
 import type { Space } from '@shared/types'
 import type { DragEvent, ReactNode } from 'react'
-import { CheckOutlined, DragOutlined, PlusOutlined } from '@ant-design/icons'
+import type { PickedProject } from './SpaceFormModal'
+import { CheckOutlined, DragOutlined, FolderAddOutlined, PlusOutlined } from '@ant-design/icons'
 import { invoke } from '@renderer/api'
 import { formatError } from '@renderer/api/errors'
 import { useDocumentsStore } from '@renderer/stores/documents'
@@ -17,7 +18,8 @@ export default function SpacesPage(): ReactNode {
   const navigate = useNavigate()
   const { message, modal } = App.useApp()
   const { spaces, remove, reorder } = useSpacesStore()
-  const [editing, setEditing] = useState<{ open: boolean, space?: Space }>({ open: false })
+  const [editing, setEditing] = useState<{ open: boolean, space?: Space, project?: PickedProject }>({ open: false })
+  const [picking, setPicking] = useState(false)
   const [sorting, setSorting] = useState(false)
   const [orderedIds, setOrderedIds] = useState<string[]>([])
   const [sortingSaving, setSortingSaving] = useState(false)
@@ -28,7 +30,9 @@ export default function SpacesPage(): ReactNode {
   const confirmRemove = (space: Space): void => {
     modal.confirm({
       title: t('spaces.deleteConfirm', { name: space.name }),
-      content: t('spaces.deleteContent'),
+      content: space.projectPath
+        ? t('spaces.deleteProjectContent', { path: space.projectPath })
+        : t('spaces.deleteContent'),
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
@@ -40,6 +44,23 @@ export default function SpacesPage(): ReactNode {
         }
       },
     })
+  }
+
+  const pickProject = async (): Promise<void> => {
+    setPicking(true)
+    try {
+      const path = await invoke('app:select-directory')
+      if (!path)
+        return
+      const info = await invoke('space:inspect-project', path)
+      setEditing({ open: true, project: { path, info } })
+    }
+    catch (error) {
+      message.error(formatError(t, error))
+    }
+    finally {
+      setPicking(false)
+    }
   }
 
   const resetOrder = (): void => {
@@ -124,6 +145,9 @@ export default function SpacesPage(): ReactNode {
               {t(sorting ? 'spaces.finishSorting' : 'spaces.sort')}
             </Button>
           )}
+          <Button icon={<FolderAddOutlined />} disabled={sorting} loading={picking} onClick={() => void pickProject()}>
+            {t('spaces.importProject')}
+          </Button>
           <Button type="primary" icon={<PlusOutlined />} disabled={sorting} onClick={() => setEditing({ open: true })}>
             {t('spaces.create')}
           </Button>
@@ -133,7 +157,10 @@ export default function SpacesPage(): ReactNode {
       {spaces.length === 0
         ? (
             <Empty description={t('spaces.empty')} style={{ marginTop: 80 }}>
-              <Button type="primary" onClick={() => setEditing({ open: true })}>{t('spaces.create')}</Button>
+              <Flex gap={8} justify="center">
+                <Button onClick={() => void pickProject()} loading={picking}>{t('spaces.importProject')}</Button>
+                <Button type="primary" onClick={() => setEditing({ open: true })}>{t('spaces.create')}</Button>
+              </Flex>
             </Empty>
           )
         : (
@@ -181,6 +208,7 @@ export default function SpacesPage(): ReactNode {
       <SpaceFormModal
         open={editing.open}
         space={editing.space}
+        project={editing.project}
         // Keep the space while the close animation plays so the title doesn't flip to "create"
         onClose={() => setEditing(prev => ({ ...prev, open: false }))}
         onSaved={(space) => {

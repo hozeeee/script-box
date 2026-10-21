@@ -33,7 +33,11 @@
     "CHECKSUM_MISMATCH": "Checksum verification failed: {{file}}",
     "DEPS_BUSY": "A dependency task is already running in this space",
     "BUILD_FAILED": "TypeScript transpilation failed: {{detail}}",
-    "RUN_NOT_FOUND": "Run record not found"
+    "RUN_NOT_FOUND": "Run record not found",
+    "PROJECT_NOT_FOUND": "Project directory {{path}} not found. It may have been moved or deleted.",
+    "PROJECT_ALREADY_IMPORTED": "This project is already imported as space \"{{name}}\"",
+    "INVALID_PROJECT": "The directory is not a JS project (no package.json): {{path}}",
+    "PACKAGE_MANAGER_NOT_FOUND": "Package manager {{manager}} not found. Install it on your system first."
   },
   "spaces": {
     "title": "Spaces",
@@ -49,7 +53,16 @@
     "nodeVersionHint": "Scripts and npm in this space run with this version",
     "deleteConfirm": "Delete space \"{{name}}\"?",
     "deleteContent": "Scripts, dependencies and run history in this space will be removed permanently.",
-    "notFound": "The space does not exist or has been deleted"
+    "notFound": "The space does not exist or has been deleted",
+    "importProject": "Import project",
+    "projectPath": "Project directory",
+    "projectPathHint": "Scripts are read, written and run in place. Script Box never writes its own files into this directory.",
+    "relink": "Relink",
+    "pnpWarning": "This project uses Yarn PnP (no node_modules). Running scripts and type hints may not work.",
+    "nodeVersionDetected": "Recommended by the project: {{version}}",
+    "deleteProjectContent": "Only the run configuration and history of this space are removed. Nothing in the project directory {{path}} is deleted.",
+    "projectBadge": "Project",
+    "projectMissing": "Project directory missing, click to relink"
   },
   "runtimes": {
     "title": "Node runtimes",
@@ -109,7 +122,12 @@
     "unsaved": "Unsaved",
     "noScript": "Create or import a script to start",
     "loadFailed": "Unable to open the script",
-    "alreadyRunning": "This script is already running. Stop it first."
+    "alreadyRunning": "This script is already running. Stop it first.",
+    "noScriptProject": "Pick a script on the left",
+    "externalChangeTitle": "File changed on disk",
+    "externalChangeContent": "\"{{name}}\" was modified by another program after it was opened. Overwrite the version on disk, or discard your edits and reload?",
+    "reloadFromDisk": "Reload",
+    "overwrite": "Overwrite"
   },
   "script": {
     "new": "New script",
@@ -122,7 +140,15 @@
     "namePlaceholder": "Script name",
     "nameRequired": "Please enter a name",
     "nameInvalid": "The name must not contain special characters or start with a dot",
-    "removeConfirm": "Delete script \"{{name}}\"?"
+    "removeConfirm": "Delete script \"{{name}}\"?",
+    "refresh": "Refresh",
+    "truncated": "Too many files in the project, only part of them are listed",
+    "pathPlaceholder": "Script path, e.g. src/index.ts",
+    "pathInvalid": "Invalid path: segments must not be empty, . or .., or contain special characters"
+  },
+  "npmScripts": {
+    "title": "NPM Scripts",
+    "empty": "No scripts in package.json"
   },
   "runConfig": {
     "open": "Run configuration",

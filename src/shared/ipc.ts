@@ -7,6 +7,7 @@ import type {
   DepTask,
   DepTaskEvent,
   InstalledRuntime,
+  ProjectInfo,
   RemoteNodeVersion,
   RunConfig,
   RunExitEvent,
@@ -15,6 +16,7 @@ import type {
   RunStartOptions,
   RuntimeInstallProgress,
   ScriptFile,
+  ScriptSources,
   Settings,
   Space,
   SpaceInput,
@@ -28,6 +30,7 @@ export interface IpcInvokeMap {
   'app:open-path': (path: string) => void
   'app:open-external': (url: string) => void
   'app:select-scripts': () => string[]
+  'app:select-directory': () => string | null
 
   'settings:get': () => Settings
   'settings:update': (patch: DeepPartial<Settings>) => Settings
@@ -43,6 +46,10 @@ export interface IpcInvokeMap {
   'space:list': () => Space[]
   'space:get': (id: string) => Space
   'space:create': (input: SpaceInput) => Space
+  'space:import-project': (input: SpaceInput & { projectPath: string }) => Space
+  'space:project-info': (id: string) => ProjectInfo
+  /** Read package.json & friends of a directory before importing it */
+  'space:inspect-project': (path: string) => ProjectInfo
   'space:update': (id: string, input: Partial<SpaceInput>) => Space
   'space:reorder': (ids: string[]) => void
   'space:remove': (id: string) => void
@@ -50,12 +57,16 @@ export interface IpcInvokeMap {
 
   'script:list': (spaceId: string) => ScriptFile[]
   'script:read': (spaceId: string, name: string) => string
+  /** Modification time on disk, used to detect edits made outside Script Box */
+  'script:mtime': (spaceId: string, name: string) => number
   'script:write': (spaceId: string, name: string, content: string) => void
   'script:create': (spaceId: string, name: string) => ScriptFile
   'script:import': (spaceId: string, paths: string[]) => string[]
   'script:rename': (spaceId: string, from: string, to: string) => void
   'script:remove': (spaceId: string, name: string) => void
   'script:save-run-config': (spaceId: string, name: string, config: RunConfig) => Space
+  /** Sources of a project space, loaded as background models so relative imports resolve */
+  'script:sources': (spaceId: string) => ScriptSources
 
   'deps:list': (spaceId: string) => DependencyInfo[]
   'deps:install': (spaceId: string, specs: string[]) => DepTask

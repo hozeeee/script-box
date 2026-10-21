@@ -4,8 +4,10 @@ import { formatError } from '@renderer/api/errors'
 import { disposeScriptModel } from '@renderer/components/editor/models'
 import { useDocumentsStore } from '@renderer/stores/documents'
 import { runKey, useRunsStore } from '@renderer/stores/runs'
+import { isNpmScriptKey } from '@shared/types'
 import { App } from 'antd'
 import { useTranslation } from 'react-i18next'
+import { useSaveGuard } from './useSaveGuard'
 
 interface Options {
   spaceId: string
@@ -19,6 +21,7 @@ interface Options {
 export function useScriptActions({ spaceId, reload, select, selected, onStarted }: Options) {
   const { t } = useTranslation()
   const { message, modal } = App.useApp()
+  const guardedSave = useSaveGuard()
   const fail = (error: unknown): void => {
     message.error(formatError(t, error))
   }
@@ -74,8 +77,9 @@ export function useScriptActions({ spaceId, reload, select, selected, onStarted 
         return
       }
       try {
-        // The runner reads from disk, so flush the draft first
-        await useDocumentsStore.getState().save(spaceId, name)
+        // The runner reads from disk, so flush the draft first (npm scripts have no draft)
+        if (!isNpmScriptKey(name) && !(await guardedSave(spaceId, name)))
+          return
         onStarted(await useRunsStore.getState().start(spaceId, name))
       }
       catch (error) {

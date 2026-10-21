@@ -84,6 +84,29 @@ html[data-theme='dark'] body {
   white-space: nowrap;
 }
 
+.script-tree {
+  background: transparent;
+}
+
+.script-tree .ant-tree-node-content-wrapper {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  user-select: none;
+}
+
+.script-tree .ant-tree-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.script-tree-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .bottom-tabs {
   height: 100%;
   display: flex;

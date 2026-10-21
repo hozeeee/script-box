@@ -8,7 +8,7 @@ export const nodeRunner: LanguageRunner = {
   supports: script => scriptExtension(script) !== null,
   async prepare({ space, script, source, args }) {
     const runtime = await runtimeService.resolve(space.nodeVersion)
-    const entry = await prepareEntry(space.id, script, source, runtime.version)
+    const entry = await prepareEntry(space, script, source, runtime.version)
     return {
       command: runtime.node,
       args: [entry, ...args],

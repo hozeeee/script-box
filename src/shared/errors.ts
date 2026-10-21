@@ -15,6 +15,10 @@ export type ErrorCode
     | 'DEPS_BUSY'
     | 'BUILD_FAILED'
     | 'RUN_NOT_FOUND'
+    | 'PROJECT_NOT_FOUND'
+    | 'PROJECT_ALREADY_IMPORTED'
+    | 'INVALID_PROJECT'
+    | 'PACKAGE_MANAGER_NOT_FOUND'
 
 export interface SerializedError {
   code: ErrorCode

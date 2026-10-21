@@ -33,7 +33,11 @@
     "CHECKSUM_MISMATCH": "文件校验失败：{{file}}",
     "DEPS_BUSY": "该空间已有依赖任务在执行",
     "BUILD_FAILED": "TypeScript 转译失败：{{detail}}",
-    "RUN_NOT_FOUND": "运行记录不存在"
+    "RUN_NOT_FOUND": "运行记录不存在",
+    "PROJECT_NOT_FOUND": "找不到工程目录 {{path}}，它可能已被移动或删除",
+    "PROJECT_ALREADY_IMPORTED": "该工程已导入为空间「{{name}}」",
+    "INVALID_PROJECT": "所选目录不是 JS 工程（缺少 package.json）：{{path}}",
+    "PACKAGE_MANAGER_NOT_FOUND": "找不到包管理器 {{manager}}，请先在系统中安装它"
   },
   "spaces": {
     "title": "运行空间",
@@ -49,7 +53,16 @@
     "nodeVersionHint": "空间内的脚本和 npm 都使用这个版本运行",
     "deleteConfirm": "确定删除空间「{{name}}」？",
     "deleteContent": "空间内的脚本、依赖和运行历史都会被删除，且无法恢复。",
-    "notFound": "运行空间不存在或已被删除"
+    "notFound": "运行空间不存在或已被删除",
+    "importProject": "导入工程",
+    "projectPath": "工程目录",
+    "projectPathHint": "脚本直接在该目录中读写和运行，Script Box 不会向其中写入自己的文件",
+    "relink": "重新关联",
+    "pnpWarning": "该工程使用 Yarn PnP（没有 node_modules），运行和类型提示可能无法正常工作",
+    "nodeVersionDetected": "根据工程配置推荐的版本：{{version}}",
+    "deleteProjectContent": "只会删除空间的运行配置和运行历史，不会删除工程目录 {{path}} 中的任何文件。",
+    "projectBadge": "工程",
+    "projectMissing": "工程目录不存在，点击重新关联"
   },
   "runtimes": {
     "title": "Node 运行时",
@@ -109,7 +122,12 @@
     "unsaved": "未保存",
     "noScript": "新建或导入一个脚本开始编写",
     "loadFailed": "无法打开脚本",
-    "alreadyRunning": "该脚本正在运行，请先停止"
+    "alreadyRunning": "该脚本正在运行，请先停止",
+    "noScriptProject": "从左侧选择一个脚本",
+    "externalChangeTitle": "文件已在外部修改",
+    "externalChangeContent": "「{{name}}」在打开后被其他程序修改过。要覆盖磁盘上的版本，还是放弃编辑并重新加载？",
+    "reloadFromDisk": "重新加载",
+    "overwrite": "覆盖"
   },
   "script": {
     "new": "新建脚本",
@@ -121,7 +139,15 @@
     "namePlaceholder": "脚本名称",
     "nameRequired": "请输入脚本名称",
     "nameInvalid": "名称不能包含特殊字符，也不能以 . 开头",
-    "removeConfirm": "确定删除脚本「{{name}}」？"
+    "removeConfirm": "确定删除脚本「{{name}}」？",
+    "refresh": "刷新",
+    "truncated": "工程文件过多，列表只显示了一部分",
+    "pathPlaceholder": "脚本路径，例如 src/index.ts",
+    "pathInvalid": "路径无效：各级名称不能为空、不能是 . 或 ..，也不能包含特殊字符"
+  },
+  "npmScripts": {
+    "title": "NPM Scripts",
+    "empty": "package.json 中没有 scripts"
   },
   "runConfig": {
     "open": "运行配置",

@@ -1,3 +1,4 @@
+import type { Space } from '@shared/types'
 import { join } from 'node:path'
 import { AppError } from '@shared/errors'
 import { app } from 'electron'
@@ -44,12 +45,28 @@ const spaceDir = (id: string): string => join(paths.spaces, safeId(id))
 const historyDir = (spaceId: string): string => join(paths.history, safeId(spaceId))
 
 export const spacePaths = {
+  /** Metadata directory inside userData; for project spaces it never contains the project itself */
   root: (id: string) => spaceDir(id),
   meta: (id: string) => join(spaceDir(id), 'space.json'),
   pkg: (id: string) => join(spaceDir(id), 'package.json'),
   nodeModules: (id: string) => join(spaceDir(id), 'node_modules'),
   scripts: (id: string) => join(spaceDir(id), 'scripts'),
   build: (id: string) => join(spaceDir(id), '.scriptbox', 'build'),
+}
+
+/** Directory scripts run in and npm operates on: the project for project spaces */
+export function spaceWorkDir(space: Space): string {
+  return space.projectPath ?? spacePaths.root(space.id)
+}
+
+/** Directory script names are relative to */
+export function spaceScriptsDir(space: Space): string {
+  return space.projectPath ?? spacePaths.scripts(space.id)
+}
+
+export const workPaths = {
+  pkg: (space: Space) => join(spaceWorkDir(space), 'package.json'),
+  nodeModules: (space: Space) => join(spaceWorkDir(space), 'node_modules'),
 }
 
 export const historyPaths = {

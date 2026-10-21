@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import Editor from '@monaco-editor/react'
 import { useAppTheme } from '@renderer/hooks/useAppTheme'
 import { Spin } from 'antd'
-import { useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { monaco } from './monacoSetup'
 
 interface Props {
@@ -19,12 +19,27 @@ interface Props {
 export default function CodeEditor({ path, language, value, onChange, onSave, onRun }: Props): ReactNode {
   const mode = useAppTheme()
   const handlersRef = useRef({ onSave, onRun })
+  const editorRef = useRef<Parameters<OnMount>[0] | null>(null)
+  const valueRef = useRef(value)
 
   useLayoutEffect(() => {
     handlersRef.current = { onSave, onRun }
-  }, [onSave, onRun])
+    valueRef.current = value
+  }, [onSave, onRun, value])
+
+  // An existing model (e.g. a background project source) is reused as is when switching paths,
+  // make sure it shows the document content
+  useEffect(() => {
+    const model = editorRef.current?.getModel()
+    if (model && model.uri.toString(true) === monaco.Uri.parse(path).toString(true) && model.getValue() !== valueRef.current)
+      model.setValue(valueRef.current)
+  }, [path])
 
   const handleMount: OnMount = (editor) => {
+    editorRef.current = editor
+    const model = editor.getModel()
+    if (model && model.getValue() !== valueRef.current)
+      model.setValue(valueRef.current)
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => handlersRef.current.onSave())
     editor.addCommand(monaco.KeyCode.F5, () => handlersRef.current.onRun())
     editor.focus()

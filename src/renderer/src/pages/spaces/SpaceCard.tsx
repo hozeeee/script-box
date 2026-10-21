@@ -1,6 +1,6 @@
 import type { Space } from '@shared/types'
 import type { ReactNode } from 'react'
-import { DeleteOutlined, EditOutlined, FolderOpenOutlined, HolderOutlined, WarningOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, FolderOpenOutlined, HolderOutlined, LinkOutlined, WarningOutlined } from '@ant-design/icons'
 import { useRuntimesStore } from '@renderer/stores/runtimes'
 import { formatTime } from '@renderer/utils/format'
 import { Card, ConfigProvider, Flex, Tag, Tooltip, Typography } from 'antd'
@@ -48,10 +48,28 @@ export default function SpaceCard({ space, onOpen, onEdit, onRemove, onOpenDir, 
           <Flex align="center" gap={6}>
             {sorting && <HolderOutlined aria-hidden style={{ color: 'var(--ant-color-text-tertiary)' }} />}
             <Typography.Text strong ellipsis>{space.name}</Typography.Text>
+            {space.projectPath && <Tag color="blue" style={{ margin: 0, flexShrink: 0 }}>{t('spaces.projectBadge')}</Tag>}
           </Flex>
-          <Typography.Text type="secondary" ellipsis style={{ fontSize: 12 }}>
-            {space.description || t('spaces.noDescription')}
-          </Typography.Text>
+          {space.projectPath
+            ? (
+                <Tooltip title={space.projectPath}>
+                  <Typography.Text type={space.projectMissing ? 'warning' : 'secondary'} ellipsis style={{ fontSize: 12 }}>
+                    {space.projectMissing && <WarningOutlined style={{ marginInlineEnd: 4 }} />}
+                    {space.projectPath}
+                  </Typography.Text>
+                </Tooltip>
+              )
+            : (
+                <Typography.Text type="secondary" ellipsis style={{ fontSize: 12 }}>
+                  {space.description || t('spaces.noDescription')}
+                </Typography.Text>
+              )}
+          {space.projectMissing && !sorting && (
+            <Typography.Link style={{ fontSize: 12 }} onClick={stop(onEdit)}>
+              <LinkOutlined style={{ marginInlineEnd: 4 }} />
+              {t('spaces.projectMissing')}
+            </Typography.Link>
+          )}
           <Flex justify="space-between" align="center" gap={8}>
             {runtimeReady
               ? <Tag color="green" style={{ margin: 0 }}>{`Node ${space.nodeVersion}`}</Tag>

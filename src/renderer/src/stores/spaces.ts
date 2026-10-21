@@ -7,6 +7,8 @@ interface SpacesState {
   loaded: boolean
   load: () => Promise<void>
   create: (input: SpaceInput) => Promise<Space>
+  /** Reference an existing project directory in place */
+  importProject: (input: SpaceInput & { projectPath: string }) => Promise<Space>
   update: (id: string, input: Partial<SpaceInput>) => Promise<Space>
   reorder: (ids: string[]) => Promise<void>
   remove: (id: string) => Promise<void>
@@ -22,6 +24,11 @@ export const useSpacesStore = create<SpacesState>((set, get) => ({
   },
   async create(input) {
     const space = await invoke('space:create', input)
+    set({ spaces: [space, ...get().spaces] })
+    return space
+  },
+  async importProject(input) {
+    const space = await invoke('space:import-project', input)
     set({ spaces: [space, ...get().spaces] })
     return space
   },

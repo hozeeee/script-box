@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseArgs } from '../runner/args'
-import { isValidScriptName, languageOf, uniqueName } from './naming'
+import { isValidScriptName, isValidScriptPath, languageOf, uniqueName } from './naming'
 
 describe('script naming', () => {
   it('validates script names', () => {
@@ -8,6 +8,13 @@ describe('script naming', () => {
       expect(isValidScriptName(name), name).toBe(true)
     for (const name of ['', 'a.txt', 'noext', '.hidden.js', '../x.js', 'a/b.js', 'a\\b.ts', ' a.js', 'a:b.ts'])
       expect(isValidScriptName(name), name).toBe(false)
+  })
+
+  it('validates project-relative script paths', () => {
+    for (const name of ['src/index.ts', 'tools/deploy.mjs', '中文/脚本.js', 'main.cts'])
+      expect(isValidScriptPath(name), name).toBe(true)
+    for (const name of ['', '/abs.ts', '../x.ts', 'src/../x.ts', 'src//x.ts', 'C:\\x.ts', 'src\\x.ts', './x.ts'])
+      expect(isValidScriptPath(name), name).toBe(false)
   })
 
   it('detects language by extension', () => {

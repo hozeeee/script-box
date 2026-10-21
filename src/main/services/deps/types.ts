@@ -15,17 +15,31 @@ interface Budget {
   bytes: number
 }
 
+/** Package folders may be symlinks, e.g. pnpm's isolated layout */
+function isPackageEntry(entry: Dirent): boolean {
+  return entry.isDirectory() || entry.isSymbolicLink()
+}
+
 /** List top level package names (including scoped ones) in a node_modules folder */
 export async function listPackages(nodeModules: string): Promise<string[]> {
   if (!(await exists(nodeModules)))
     return []
   const result: string[] = []
   for (const entry of await readdir(nodeModules, { withFileTypes: true })) {
-    if (!entry.isDirectory() || SKIP_PACKAGES.has(entry.name) || entry.name.startsWith('.'))
+    if (!isPackageEntry(entry) || SKIP_PACKAGES.has(entry.name) || entry.name.startsWith('.'))
       continue
     if (entry.name.startsWith('@')) {
-      for (const scoped of await readdir(join(nodeModules, entry.name)))
-        result.push(`${entry.name}/${scoped}`)
+      let scopedEntries: Dirent[]
+      try {
+        scopedEntries = await readdir(join(nodeModules, entry.name), { withFileTypes: true })
+      }
+      catch {
+        continue
+      }
+      for (const scoped of scopedEntries) {
+        if (isPackageEntry(scoped) && !scoped.name.startsWith('.'))
+          result.push(`${entry.name}/${scoped.name}`)
+      }
     }
     else {
       result.push(entry.name)

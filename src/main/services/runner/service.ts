@@ -1,18 +1,22 @@
-import type { RunOutputEvent, RunRecord, RunStartOptions } from '@shared/types'
+import type { RunOutputEvent, RunRecord, RunStartOptions, Space } from '@shared/types'
 import type { IPty } from 'node-pty'
 import type { WriteStream } from 'node:fs'
+import type { PreparedCommand } from './languages'
 import { randomUUID } from 'node:crypto'
 import { EventEmitter } from 'node:events'
 import { relative } from 'node:path'
 import { AppError } from '@shared/errors'
+import { isNpmScriptKey, NPM_SCRIPT_PREFIX } from '@shared/types'
 import { spawn } from 'node-pty'
 import treeKill from 'tree-kill'
-import { spacePaths } from '../../paths'
+import { spaceWorkDir } from '../../paths'
 import { exists } from '../../utils/fs'
+import { registryEnv, resolvePackageManager, runScriptArgs } from '../deps/pm'
+import { runtimeService } from '../runtime'
 import { buildProcessEnv } from '../runtime/env'
 import { scriptService } from '../script'
 import { buildNetworkEnv, settingsStore } from '../settings'
-import { spaceService } from '../space'
+import { assertProjectDir, detectPackageManager, readProjectInfo, spaceService } from '../space'
 import { parseArgs } from './args'
 import { historyStore } from './history'
 import { resolveLanguageRunner } from './languages'
@@ -22,6 +26,12 @@ interface ActiveRun {
   pty: IPty
   log: WriteStream
   stopRequested: boolean
+}
+
+interface ResolvedCommand extends PreparedCommand {
+  /** Command line echoed before the output */
+  shown: string
+  env: Record<string, string>
 }
 
 const gray = (text: string): string => `\x1B[90m${text}\x1B[0m\r\n`
@@ -41,20 +51,27 @@ class RunnerService extends EventEmitter<{ output: [RunOutputEvent], exit: [RunR
     return this.active().some(record => record.spaceId === spaceId)
   }
 
+  /**
+   * `script` is a file path relative to the working directory, or
+   * `npm:<name>` for a package.json script of an imported project.
+   */
   async start(spaceId: string, script: string, options: RunStartOptions): Promise<RunRecord> {
     const space = await spaceService.get(spaceId)
-    const source = scriptService.resolvePath(spaceId, script)
-    if (!(await exists(source)))
-      throw new AppError('SCRIPT_NOT_FOUND', undefined, { name: script })
+    if (space.projectPath)
+      await assertProjectDir(space.projectPath)
 
     const runConfig = space.scripts[script]?.runConfig ?? { args: '', env: [] }
     const args = parseArgs(runConfig.args)
-    const prepared = await resolveLanguageRunner(script).prepare({ space, script, source, args })
+    const network = buildNetworkEnv(settingsStore.get().network)
+    const prepared = isNpmScriptKey(script)
+      ? await this.prepareNpmScript(space, script.slice(NPM_SCRIPT_PREFIX.length), args, network)
+      : await this.prepareFile(space, script, args)
     const scriptEnv = Object.fromEntries(runConfig.env.filter(item => item.key.trim()).map(item => [item.key.trim(), item.value]))
     const env = buildProcessEnv(
       prepared.binDir,
       process.env,
-      buildNetworkEnv(settingsStore.get().network),
+      network,
+      prepared.env,
       { FORCE_COLOR: '1', COLORTERM: 'truecolor' },
       scriptEnv,
     )
@@ -75,17 +92,44 @@ class RunnerService extends EventEmitter<{ output: [RunOutputEvent], exit: [RunR
       name: 'xterm-256color',
       cols: Math.max(options.cols, 20),
       rows: Math.max(options.rows, 5),
-      cwd: spacePaths.root(spaceId),
+      cwd: spaceWorkDir(space),
       env,
     })
     const run: ActiveRun = { record, pty, log, stopRequested: false }
     this.runs.set(record.id, run)
 
-    const shown = relative(spacePaths.root(spaceId), source).split('\\').join('/')
-    this.output(run, gray(`> ${shown}${args.length ? ` ${args.join(' ')}` : ''}  (${prepared.runtimeVersion})`))
+    this.output(run, gray(`> ${prepared.shown}${args.length ? ` ${args.join(' ')}` : ''}  (${prepared.runtimeVersion})`))
     pty.onData(data => this.output(run, data))
     pty.onExit(({ exitCode }) => void this.finish(run, exitCode))
     return record
+  }
+
+  private async prepareFile(space: Space, script: string, args: string[]): Promise<ResolvedCommand> {
+    const source = scriptService.resolvePath(space, script)
+    if (!(await exists(source)))
+      throw new AppError('SCRIPT_NOT_FOUND', undefined, { name: script })
+    const prepared = await resolveLanguageRunner(script).prepare({ space, script, source, args })
+    const shown = relative(spaceWorkDir(space), source).split('\\').join('/')
+    return { ...prepared, shown, env: {} }
+  }
+
+  /** `<pm> run <name>` in the project directory with the detected package manager */
+  private async prepareNpmScript(space: Space, name: string, args: string[], network: Record<string, string>): Promise<ResolvedCommand> {
+    if (!space.projectPath)
+      throw new AppError('UNSUPPORTED_SCRIPT', undefined, { name: `${NPM_SCRIPT_PREFIX}${name}` })
+    const info = await readProjectInfo(space.projectPath)
+    if (!Object.hasOwn(info.scripts, name))
+      throw new AppError('SCRIPT_NOT_FOUND', undefined, { name: `${NPM_SCRIPT_PREFIX}${name}` })
+    const runtime = await runtimeService.resolve(space.nodeVersion)
+    const launcher = await resolvePackageManager(await detectPackageManager(space.projectPath), runtime)
+    return {
+      command: launcher.command,
+      args: [...launcher.prefix, ...runScriptArgs(launcher.manager, name, args)],
+      binDir: runtime.bin,
+      runtimeVersion: runtime.version,
+      shown: `${launcher.manager} run ${name}`,
+      env: { ...registryEnv(network), ...launcher.env },
+    }
   }
 
   write(runId: string, data: string): void {

@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import EditorToolbar from './EditorToolbar'
 import { useMissingDeps } from './useMissingDeps'
+import { useSaveGuard } from './useSaveGuard'
 
 interface Props {
   spaceId: string
@@ -29,6 +30,7 @@ export default function ScriptEditorPane({ spaceId, file, running, onRun, onStop
   const installDeps = useDepsStore(state => state.install)
   const missing = useMissingDeps(spaceId, file.name, doc?.saved)
   const [loadError, setLoadError] = useState<{ name: string, message: string } | null>(null)
+  const guardedSave = useSaveGuard()
 
   useEffect(() => {
     useDocumentsStore.getState()
@@ -37,7 +39,7 @@ export default function ScriptEditorPane({ spaceId, file, running, onRun, onStop
   }, [spaceId, file.name, t])
 
   const save = (): void => {
-    useDocumentsStore.getState().save(spaceId, file.name).catch(error => message.error(formatError(t, error)))
+    guardedSave(spaceId, file.name).catch(error => message.error(formatError(t, error)))
   }
 
   const install = (): void => {

@@ -1,11 +1,19 @@
 import type { Space, SpaceInput } from '@shared/types'
 import { randomUUID } from 'node:crypto'
 import { readdir, rm, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { isAbsolute, join, relative } from 'node:path'
 import { AppError } from '@shared/errors'
 import { historyPaths, ID_PATTERN, paths, spacePaths } from '../../paths'
 import { ensureDir, exists, readJson, writeJson } from '../../utils/fs'
+import { normalizeProjectPath, projectExists } from './project'
 import { SPACE_NPMRC, WELCOME_SCRIPT, WELCOME_SCRIPT_NAME } from './templates'
+
+/** Paths are compared case-insensitively where the file system usually is */
+function samePath(a: string, b: string): boolean {
+  return process.platform === 'win32' || process.platform === 'darwin'
+    ? a.toLowerCase() === b.toLowerCase()
+    : a === b
+}
 
 class SpaceService {
   /** Per-space promise chain so concurrent metadata updates never clobber each other */
@@ -21,8 +29,10 @@ class SpaceService {
     )
     const order = await readJson<string[]>(paths.spaceOrder, [])
     const positions = new Map(order.map((id, index) => [id, index]))
-    return spaces
-      .filter((space): space is Space => space !== null)
+    const found = await Promise.all(
+      spaces.filter((space): space is Space => space !== null).map(space => this.annotate(space)),
+    )
+    return found
       .sort((a, b) => {
         const aPosition = positions.get(a.id)
         const bPosition = positions.get(b.id)
@@ -68,15 +78,44 @@ class SpaceService {
     return space
   }
 
-  update(id: string, input: Partial<SpaceInput>): Promise<Space> {
-    return this.mutate(id, (space) => {
+  /**
+   * Reference an existing project in place. Only `space.json` is written, and
+   * it lives in userData: nothing is ever added to the project directory.
+   */
+  async importProject(input: SpaceInput & { projectPath: string }): Promise<Space> {
+    const projectPath = await this.claimProjectPath(input.projectPath)
+    const id = randomUUID()
+    const now = Date.now()
+    const space: Space = {
+      id,
+      name: input.name.trim(),
+      description: input.description?.trim() ?? '',
+      nodeVersion: input.nodeVersion,
+      createdAt: now,
+      updatedAt: now,
+      scripts: {},
+      projectPath,
+    }
+    await writeJson(spacePaths.meta(id), space)
+    return space
+  }
+
+  async update(id: string, input: Partial<SpaceInput>): Promise<Space> {
+    const current = await this.get(id)
+    const projectPath = current.projectPath && input.projectPath !== undefined && input.projectPath !== current.projectPath
+      ? await this.claimProjectPath(input.projectPath, id)
+      : undefined
+    const space = await this.mutate(id, (space) => {
       if (input.name !== undefined)
         space.name = input.name.trim()
       if (input.description !== undefined)
         space.description = input.description.trim()
       if (input.nodeVersion !== undefined)
         space.nodeVersion = input.nodeVersion
+      if (projectPath)
+        space.projectPath = projectPath
     })
+    return this.annotate(space)
   }
 
   reorder(ids: string[]): Promise<void> {
@@ -91,6 +130,11 @@ class SpaceService {
     return next
   }
 
+  /**
+   * Only the metadata directory (userData/spaces/<id>) and the run history are
+   * deleted. For project spaces `spacePaths.root` never points at the project,
+   * so the referenced project directory is left untouched.
+   */
   async remove(id: string): Promise<void> {
     await this.get(id)
     await rm(spacePaths.root(id), { recursive: true, force: true })
@@ -104,11 +148,32 @@ class SpaceService {
       const space = await this.get(id)
       fn(space)
       space.updatedAt = Date.now()
+      delete space.projectMissing
       await writeJson(spacePaths.meta(id), space)
       return space
     })
     this.locks.set(id, next)
     return next
+  }
+
+  private async annotate(space: Space): Promise<Space> {
+    if (!space.projectPath)
+      return space
+    return { ...space, projectMissing: !(await projectExists(space.projectPath)) }
+  }
+
+  /** Validated canonical project path that no other space references yet */
+  private async claimProjectPath(path: string, selfId?: string): Promise<string> {
+    const projectPath = await normalizeProjectPath(path)
+    // A project inside the spaces folder would be wiped together with its owner space
+    const rel = relative(paths.spaces, projectPath)
+    if (!rel || (!rel.startsWith('..') && !isAbsolute(rel)))
+      throw new AppError('INVALID_PROJECT', undefined, { path: projectPath })
+    const taken = (await this.list()).find(space =>
+      space.id !== selfId && space.projectPath && samePath(space.projectPath, projectPath))
+    if (taken)
+      throw new AppError('PROJECT_ALREADY_IMPORTED', undefined, { path: projectPath, name: taken.name })
+    return projectPath
   }
 }
 
