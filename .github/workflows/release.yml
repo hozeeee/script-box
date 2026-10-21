@@ -82,3 +82,60 @@ jobs:
         run: pnpm exec electron-builder ${{ matrix.platform }} --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  script-hub:
+    name: 构建脚本中心发布包
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: script-hub
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: script-hub/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: script-hub/pnpm-lock.yaml
+      - name: 安装子项目依赖
+        run: pnpm install --frozen-lockfile
+      - name: 检查代码
+        run: pnpm lint
+      - name: 构建并测试脚本与网站
+        run: pnpm test
+      - name: 打包完整网站与单文件脚本
+        working-directory: script-hub/dist
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: zip -r "${RUNNER_TEMP}/script-hub-${RELEASE_TAG#v}.zip" .
+      - name: 保存脚本中心发布包
+        uses: actions/upload-artifact@v4
+        with:
+          name: script-hub-release
+          path: ${{ runner.temp }}/script-hub-*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  publish-script-hub:
+    name: 上传脚本中心到 Release
+    needs: [release, script-hub]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载脚本中心发布包
+        uses: actions/download-artifact@v4
+        with:
+          name: script-hub-release
+          path: script-hub-release
+      # 等桌面应用创建好对应 Release，避免并行创建草稿的竞争。
+      - name: 上传到同一标签的 Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release upload "$RELEASE_TAG" "script-hub-release/script-hub-${RELEASE_TAG#v}.zip" --clobber

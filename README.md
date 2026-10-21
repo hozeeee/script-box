@@ -104,7 +104,16 @@ node http-probe.js "https://example.com" --headers
 
 ### GitHub Actions
 
-[Script Hub 工作流](./.github/workflows/script-hub.yml) 在相关路径的 push / PR 和手动触发时独立安装子项目依赖、检查代码、构建、测试，并上传 `script-hub-site` artifact（保留 14 天），内容就是完整的 `script-hub/dist/`。当前不部署 GitHub Pages，后续配置 Website 时可直接使用此目录作为发布内容。
+[Script Hub 工作流](./.github/workflows/script-hub.yml) 在 `main` / `master` 上相关路径的 push、相关 PR 和手动触发时独立安装子项目依赖、检查代码、构建、测试，并上传 `script-hub-site` artifact（保留 14 天），内容就是完整的 `script-hub/dist/`。默认分支上的 push 或手动运行还会将同一份已验证产物部署到 GitHub Pages；PR 和非默认分支只构建检查，不部署。
+
+首次部署需要在 GitHub 仓库中配置：
+
+1. 打开 **Settings → Pages → Build and deployment → Source**，选择 **GitHub Actions**，不需要额外创建 GitHub 推荐的模板工作流。
+2. 将工作流变更推送到默认分支，然后在 **Actions → Script Hub → Run workflow** 选择默认分支手动运行；后续脚本或页面更新会自动触发部署。
+3. 部署成功后地址为 `https://<owner>.github.io/script-box/`（当前仓库为 `https://hozeeee.github.io/script-box/`；配置了自定义域名时以 Pages 显示的地址为准）。
+4. 仓库首页 **About → 编辑 → Website** 可以填入该地址，勾选 **Deployments** 可展示部署记录。该弹窗没有单独的 Pages 勾选项，也不是启用 Pages 的入口。
+
+[Release 工作流](./.github/workflows/release.yml) 在 `v*` 标签上另行独立构建脚本中心，并在桌面应用发布任务全部成功后，将 `script-hub-<版本>.zip` 上传到同一个 Release 的 Assets。压缩包包含页面、全部单文件脚本和校验清单，不含源码或 `node_modules`。手动运行 Release 时需要选择版本标签才能上传脚本中心发布包；从分支手动运行会跳过该发布步骤。已有 Release 不会因推送这些配置而自动补齐产物；后续版本标签需包含这些工作流变更。
 
 网站的主项目介绍在 `script-hub/site.json` 中独立维护，不读取主应用源码或配置。仓库地址可填写 `repositoryUrl`，安装包地址可填写 `releasesUrl`；留空时 GitHub Actions 会从 `GITHUB_REPOSITORY` 自动生成 GitHub 仓库和 Releases 链接，本地构建未配置时不显示链接。
 
@@ -166,7 +175,7 @@ src/
 
 ### 发布
 
-推送 `v*` 格式的 tag（例如 `git tag v0.1.0 && git push --tags`）后，GitHub Actions 会在 Windows、macOS、Linux 三个平台上构建，并把安装包上传到一个草稿 Release，确认无误后手动发布即可。
+推送 `v*` 格式的 tag（例如 `git tag v0.1.0 && git push --tags`）后，GitHub Actions 会在 Windows、macOS、Linux 三个平台上构建，并把安装包上传到一个草稿 Release；同时独立构建脚本中心，在桌面应用发布任务全部成功后追加 `script-hub-0.1.0.zip`（版本号取自标签）。确认无误后手动发布即可。GitHub Pages 则随默认分支的脚本中心更新独立部署，不依赖桌面应用发版。
 
 代码签名是可选的，需要时在仓库 Secrets 中配置：
 
