@@ -1,9 +1,12 @@
 import { join } from 'node:path'
 import { is } from '@electron-toolkit/utils'
-import { BrowserWindow, nativeTheme, shell } from 'electron'
+import { app, BrowserWindow, nativeTheme, shell } from 'electron'
 import icon from '../../resources/icon.png?asset'
 
 export function createMainWindow(): BrowserWindow {
+  if (process.platform === 'darwin' && is.dev)
+    app.dock?.setIcon(icon)
+
   const window = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -13,7 +16,7 @@ export function createMainWindow(): BrowserWindow {
     title: 'Script Box',
     autoHideMenuBar: true,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#141414' : '#ffffff',
-    ...(process.platform === 'linux' ? { icon } : {}),
+    icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,
