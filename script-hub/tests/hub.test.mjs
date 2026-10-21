@@ -97,7 +97,9 @@ test('单独复制的 JS 无需其他文件，所有脚本均提供统一帮助'
 
 test('未提供必要输入、非法参数和未知选项以非零退出码结束', async () => {
   for (const item of catalog) {
-    assert.equal((await run(item.id)).code, 1)
+    // 录屏的输出文件名可省略，无参数时会直接开始录制，单独在下方用缺失的 ffmpeg 验证。
+    if (item.id !== 'screen-record')
+      assert.equal((await run(item.id)).code, 1)
     assert.equal((await run(item.id, ['--unknown'])).code, 1)
   }
   assert.equal((await run('json-format', ['-', '--indent', '-1'], '{}')).code, 1)
@@ -180,6 +182,9 @@ test('录屏在调用 ffmpeg 前校验参数，找不到 ffmpeg 时给出安装�
     ['clip.gif', '--width', '8'],
     ['clip.gif', '--delay', '61'],
     ['clip.mp4', '--screen', 'x'],
+    ['clip.mp4', '--format', 'gif'],
+    ['--format', 'avi'],
+    ['first.mp4', 'second.mp4'],
   ]
   for (const args of invalid) {
     const result = await run('screen-record', [...args, '--ffmpeg', 'missing-ffmpeg'])
@@ -189,6 +194,10 @@ test('录屏在调用 ffmpeg 前校验参数，找不到 ffmpeg 时给出安装�
   const missing = await run('screen-record', ['clip.mp4', '--full', '--ffmpeg', 'missing-ffmpeg'])
   assert.equal(missing.code, 1)
   assert.match(missing.stderr, /未找到 ffmpeg（missing-ffmpeg）/)
+  const unnamed = await run('screen-record', ['--format', 'GIF', '--ffmpeg', 'missing-ffmpeg'])
+  assert.equal(unnamed.code, 1)
+  assert.match(unnamed.stderr, /未找到 ffmpeg/)
+  assert.ok(!(await readdir(temporary)).some(file => file.startsWith('screen-record-')))
   assert.equal((await run('screen-record', ['--list', '--ffmpeg', 'missing-ffmpeg'])).code, 1)
 })
 

@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { extname, join, resolve } from 'node:path'
 import process from 'node:process'
 import { setTimeout as sleep } from 'node:timers/promises'
-import { integerOption, runCli, singleInput } from '../../shared/cli'
+import { integerOption, runCli } from '../../shared/cli'
 import { captureArgs, checkFfmpeg, failureHint, listScreens, parseRegion, resolveSource, screenshot } from './capture'
 import { pickArea } from './picker'
 import manifest from './script.json'
@@ -15,6 +15,8 @@ interface Stopper {
   signal: AbortSignal
   dispose: () => void
 }
+
+const FORMATS = ['.mp4', '.gif']
 
 /** 终端按 q / 回车 / Ctrl+C，或收到停止信号时触发；同一个信号既用于取消也用于结束录制。 */
 function listenStop(): Stopper {
@@ -89,6 +91,18 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
+/** 按本地时间在当前目录生成文件名，同一秒内重复时追加序号。 */
+async function defaultOutput(extension: string): Promise<string> {
+  const now = new Date()
+  const pad = (value: number): string => String(value).padStart(2, '0')
+  const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+  for (let index = 0; ; index++) {
+    const output = resolve(`screen-record-${stamp}${index ? `-${index}` : ''}${extension}`)
+    if (!(await exists(output)))
+      return output
+  }
+}
+
 void runCli(manifest, async ({ values, positionals }) => {
   const ffmpeg = typeof values.ffmpeg === 'string' ? values.ffmpeg : 'ffmpeg'
   if (values.list) {
@@ -98,10 +112,18 @@ void runCli(manifest, async ({ values, positionals }) => {
     return
   }
 
-  const output = resolve(singleInput(positionals))
+  if (positionals.length > 1)
+    throw new Error('最多只能提供一个输出文件路径')
+  const requested = typeof values.format === 'string' ? `.${values.format.toLowerCase()}` : undefined
+  if (requested !== undefined && !FORMATS.includes(requested))
+    throw new Error('--format 只支持 mp4 或 gif')
+  const named = Boolean(positionals[0])
+  const output = positionals[0] ? resolve(positionals[0]) : await defaultOutput(requested ?? '.mp4')
   const format = extname(output).toLowerCase()
-  if (format !== '.mp4' && format !== '.gif')
+  if (!FORMATS.includes(format))
     throw new Error('输出文件扩展名必须是 .mp4 或 .gif')
+  if (requested !== undefined && requested !== format)
+    throw new Error(`--format ${values.format} 与输出文件扩展名 ${format} 不一致`)
   if (await exists(output))
     throw new Error(`输出文件已存在：${output}`)
   if (values.region !== undefined && values.full)
@@ -116,6 +138,8 @@ void runCli(manifest, async ({ values, positionals }) => {
 
   const { x264 } = await checkFfmpeg(ffmpeg)
   const source = await resolveSource(ffmpeg, screen)
+  if (!named)
+    console.log(`输出文件：${output}`)
   const stopper = listenStop()
   const { signal } = stopper
   const temp = gif ? await mkdtemp(join(tmpdir(), 'screen-record-')) : null
