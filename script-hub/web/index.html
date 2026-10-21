@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="{{DESCRIPTION}}">
+  <meta name="color-scheme" content="light dark">
+  <title>{{TITLE}}</title>
+  <style>
+    :root { color-scheme: light; --bg: #f5f7fb; --surface: #fff; --text: #17233d; --muted: #5f6f87; --line: #dfe5ef; --accent: #315adc; --code: #eff3fa; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.75 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: var(--accent); text-underline-offset: 4px; }
+    a:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+    .container { width: min(1120px, calc(100% - 40px)); margin: auto; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; min-height: 80px; border-bottom: 1px solid var(--line); gap: 20px; }
+    .brand { color: var(--text); font-weight: 750; font-size: 19px; text-decoration: none; display: flex; align-items: center; gap: 12px; }
+    .brand-mark { background: var(--accent); color: #fff; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; font-family: monospace; }
+    .topbar nav { display: flex; gap: 24px; font-size: 14px; }
+    .topbar nav a { color: var(--muted); text-decoration: none; }
+    .hero { padding: 72px 0 46px; max-width: 760px; }
+    .eyebrow { color: var(--accent); font-size: 12px; letter-spacing: .16em; font-weight: 750; text-transform: uppercase; }
+    h1 { font-size: clamp(36px, 6vw, 60px); letter-spacing: -.045em; line-height: 1.15; margin: 16px 0 24px; }
+    .hero > p { color: var(--muted); font-size: 18px; max-width: 670px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; color: var(--muted); font-size: 13px; }
+    .tags span { border: 1px solid var(--line); padding: 4px 12px; border-radius: 100px; }
+    .section-heading { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; margin: 26px 0; }
+    h2 { font-size: 25px; letter-spacing: -.03em; margin: 0; }
+    .section-heading p { color: var(--muted); margin: 3px 0 0; }
+    .search { font-size: 14px; color: var(--muted); }
+    .search input { display: block; width: 280px; max-width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; font: inherit; margin-top: 4px; }
+    .script-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: start; }
+    .script-card { min-width: 0; padding: 26px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 4px 12px #17233d04; }
+    .card-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+    .category { color: var(--accent); font-size: 12px; font-weight: 650; padding: 2px 10px; background: var(--code); border-radius: 6px; }
+    small { color: var(--muted); font-size: 12px; }
+    h3 { font-size: 23px; line-height: 1.4; margin: 20px 0 12px; }
+    .script-card > p { margin: 0; color: var(--muted); }
+    .download-row { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin: 26px 0; }
+    .download { background: var(--accent); color: #fff; border-radius: 9px; padding: 10px 18px; text-decoration: none; font-weight: 650; font-size: 14px; }
+    .download:hover { filter: brightness(1.12); }
+    details { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 14px; }
+    summary { cursor: pointer; font-size: 14px; font-weight: 650; }
+    code { font-family: ui-monospace, "Cascadia Code", "SFMono-Regular", monospace; font-size: 12px; }
+    pre { background: var(--code); border-radius: 8px; padding: 12px; overflow-x: auto; line-height: 1.65; }
+    .table-wrap { overflow-x: auto; margin: 18px 0; }
+    table { border-collapse: collapse; text-align: left; width: 100%; font-size: 13px; }
+    td, th { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    td:first-child { min-width: 120px; }
+    .example { margin-top: 22px; }
+    .example p { font-size: 13px; margin: 0; }
+    .checksum { color: var(--muted); }
+    .checksum code { display: block; overflow-wrap: anywhere; margin-top: 12px; }
+    .guide { padding: 30px; border: 1px solid var(--line); border-radius: 16px; margin: 42px 0; background: var(--surface); }
+    .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; margin: 24px 0; }
+    .steps h3 { font-size: 16px; margin: 0 0 8px; }
+    .steps p { color: var(--muted); margin: 0; font-size: 14px; }
+    .note { color: var(--muted); font-size: 13px; }
+    .about { padding: 34px 0 50px; max-width: 820px; }
+    .about p { color: var(--muted); }
+    .project-links { display: flex; flex-wrap: wrap; gap: 24px; }
+    footer { border-top: 1px solid var(--line); padding: 24px 0 32px; font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    [hidden] { display: none !important; }
+    @media (max-width: 700px) { .hero { padding-top: 46px; } .script-grid, .steps { grid-template-columns: 1fr; } .script-card, .guide { padding: 22px; } .search, .search input { width: 100%; } .topbar nav { gap: 16px; } }
+    @media (prefers-color-scheme: dark) { :root { color-scheme: dark; --bg: #101622; --surface: #192130; --text: #e6ebf5; --muted: #a1b0c6; --line: #2e3a4e; --accent: #7795ff; --code: #222e43; } .download, .brand-mark { color: #101622; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="topbar">
+      <a class="brand" href="#"><span class="brand-mark" aria-hidden="true">&gt;_</span> Script Box</a>
+      <nav aria-label="页面导航"><a href="#scripts">脚本库</a><a href="#guide">使用指南</a><a href="#about">关于</a></nav>
+    </header>
+    <main>
+      <section class="hero">
+        <span class="eyebrow">Small scripts. Useful things.</span>
+        <h1>常用脚本，<br>下载即用。</h1>
+        <p>{{DESCRIPTION}}</p>
+        <div class="tags"><span>单文件 JavaScript</span><span>无需安装 npm 依赖</span><span>Windows · macOS · Linux</span></div>
+      </section>
+      <section id="scripts" aria-labelledby="scripts-title">
+        <div class="section-heading">
+          <div><h2 id="scripts-title">脚本库</h2><p id="script-count" role="status">共 {{COUNT}} 个脚本 · 免费使用，源码开放</p></div>
+          <label class="search" id="search-box" hidden>查找脚本<input id="search" type="search" placeholder="搜索名称、用途或分类" autocomplete="off"></label>
+        </div>
+        <div class="script-grid">{{CARDS}}</div>
+        <p id="empty" hidden>没有找到匹配的脚本，请试试其他关键词。</p>
+      </section>
+      <section class="guide" id="guide" aria-labelledby="guide-title">
+        <h2 id="guide-title">如何使用？</h2>
+        <div class="steps">
+          <div><h3>01 / 下载脚本</h3><p>选择需要的工具，点击下载，保存一个独立的 .js 文件。无需下载整个项目。</p></div>
+          <div><h3>02 / 选择运行方式</h3><p>导入 Script Box 的普通运行空间，选择 Node.js 22+。也可以在已安装 Node.js 22+ 的终端中运行。</p></div>
+          <div><h3>03 / 设置参数并运行</h3><p>展开脚本的使用示例。在 Script Box 的运行配置中只填写参数，不需要添加 node 或脚本文件名。</p></div>
+        </div>
+        <p class="note">这些是 Node.js 脚本，网页只提供下载，不会在浏览器中运行。相对文件路径以运行时工作目录为准，建议使用绝对路径；路径中包含空格时请加双引号。以连字符开头的文件名可放在 <code>--</code> 后。</p>
+        <p class="note">产物使用 CommonJS。在声明了 <code>"type": "module"</code> 的工程中使用时，请将下载文件后缀改为 <code>.cjs</code>。SHA-256 校验值可用于检查下载是否完整。</p>
+      </section>
+      <section class="about" id="about" aria-labelledby="about-title">
+        <span class="eyebrow">Meet the runner</span>
+        <h2 id="about-title">关于 Script Box</h2>
+        <p>{{PROJECT_DESCRIPTION}}</p>
+        <p>脚本中心是独立构建的静态网站，不依赖桌面应用，也不需要后端服务。下载的脚本既可以在 Script Box 中使用，也可以单独运行。</p>
+        <div class="project-links">{{PROJECT_LINKS}}</div>
+      </section>
+    </main>
+    <footer><span>{{TITLE}} · MIT License</span><span><a href="./catalog.json" download>脚本目录</a> · <a href="./SHA256SUMS.txt" download>下载校验清单</a></span></footer>
+  </div>
+  <script>
+    const search = document.getElementById('search');
+    const cards = [...document.querySelectorAll('.script-card')];
+    const count = document.getElementById('script-count');
+    document.getElementById('search-box').hidden = false;
+    search.addEventListener('input', () => {
+      const query = search.value.trim().toLowerCase();
+      let visible = 0;
+      for (const card of cards) {
+        card.hidden = !card.dataset.search.includes(query);
+        if (!card.hidden) visible++;
+      }
+      count.textContent = query ? `找到 ${visible} / ${cards.length} 个脚本` : `共 ${cards.length} 个脚本 · 免费使用，源码开放`;
+      document.getElementById('empty').hidden = visible !== 0;
+    });
+  </script>
+</body>
+</html>

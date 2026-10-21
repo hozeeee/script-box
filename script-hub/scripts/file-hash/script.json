@@ -1,0 +1,14 @@
+{
+  "id": "file-hash",
+  "title": "文件哈希校验",
+  "description": "以流式读取计算一个或多个文件的哈希，无需将整个文件加载到内存。支持 SHA-256、SHA-512 和 MD5；MD5 仅用于普通文件校验，不适合安全用途。",
+  "category": "文件工具",
+  "usage": "<文件路径...> [--algorithm sha256]",
+  "options": [
+    { "name": "algorithm", "type": "string", "short": "a", "default": "sha256", "description": "哈希算法：sha256、sha512 或 md5" }
+  ],
+  "examples": [
+    { "args": "\"archive.zip\"", "description": "计算文件的 SHA-256" },
+    { "args": "\"first.zip\" \"second.zip\" --algorithm sha512", "description": "计算多个文件的 SHA-512" }
+  ]
+}

@@ -10,6 +10,7 @@ files:
   - '!**/.qoder/*'
   - '!src/*'
   - '!build/*'
+  - '!script-hub/**'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!vitest.config.{js,ts,mjs,mts}'
   - '!{.eslintcache,eslint.config.mjs,.editorconfig,CHANGELOG.md,README.md,README.en.md}'

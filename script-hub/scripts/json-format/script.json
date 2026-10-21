@@ -1,0 +1,16 @@
+{
+  "id": "json-format",
+  "title": "JSON 格式化",
+  "description": "校验并格式化 JSON 文件，或从标准输入读取。默认只输出到终端，不修改源文件；写入文件时不会覆盖已有文件。使用原生 JSON 解析，超出 JavaScript 安全整数范围的数字可能丢失精度。",
+  "category": "数据处理",
+  "usage": "<文件路径|-> [--indent 2] [--output 新文件路径]",
+  "options": [
+    { "name": "indent", "type": "string", "short": "i", "default": "2", "description": "缩进空格数，0–8；0 表示压缩输出" },
+    { "name": "output", "type": "string", "short": "o", "description": "输出到新文件；文件已存在时退出并报错" }
+  ],
+  "examples": [
+    { "args": "\"data.json\"", "description": "格式化并打印到终端" },
+    { "args": "\"data.json\" --indent 4 --output \"formatted.json\"", "description": "以四空格缩进写入新文件" },
+    { "args": "- --indent 0", "description": "读取标准输入并压缩输出（终端可配合管道）" }
+  ]
+}

@@ -1,0 +1,47 @@
+name: Script Hub
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'script-hub/**'
+      - .github/workflows/script-hub.yml
+  pull_request:
+    paths:
+      - 'script-hub/**'
+      - .github/workflows/script-hub.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: script-hub
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: script-hub/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: script-hub/pnpm-lock.yaml
+      - name: 安装子项目依赖
+        run: pnpm install --frozen-lockfile
+      - name: 检查代码
+        run: pnpm lint
+      - name: 构建并测试脚本与网站
+        run: pnpm test
+      - name: 上传静态网站产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: script-hub-site
+          path: script-hub/dist/
+          if-no-files-found: error
+          retention-days: 14
+      # 后续 GitHub Pages 部署可直接使用 script-hub/dist/，当前只构建并上传产物。

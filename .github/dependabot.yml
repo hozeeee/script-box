@@ -13,6 +13,15 @@ updates:
       electron-build:
         patterns: [electron-vite, electron-builder, electron-updater]
 
+  - package-ecosystem: npm
+    directory: /script-hub
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      script-hub-dev:
+        dependency-type: development
+
   - package-ecosystem: github-actions
     directory: /
     schedule:

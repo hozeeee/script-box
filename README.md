@@ -48,6 +48,66 @@
 4. 编辑器上方如果提示缺少依赖，点"一键安装"即可；也可以在"依赖"面板里手动安装，例如 `lodash@4`。
 5. 按 `F5` 或点"运行"。脚本输出显示在下方终端里，终端可以直接输入。
 
+## 脚本中心（独立子项目）
+
+[`script-hub/`](./script-hub/) 是常用脚本的静态下载中心，与 Electron 应用的依赖、类型检查、构建和产物完全独立。页面包含 Script Box 介绍、脚本说明、启动参数、命令行示例和下载入口，不需要后端，也不会在浏览器中执行这些 Node.js 脚本。
+
+首批包含 JSON 格式化、文件哈希校验、HTTP 可用性检查。每个脚本用 TypeScript 编写，由 esbuild 将本地模块和 npm 依赖打包成一个 `.js` 文件；下载后只需要 Node.js >= 22，无需安装 npm 依赖，也可导入 Script Box 的普通运行空间。
+
+### 独立构建和预览
+
+在仓库根目录执行，无需先安装主项目依赖：
+
+```bash
+pnpm --dir script-hub install --frozen-lockfile
+pnpm --dir script-hub lint
+pnpm --dir script-hub build
+pnpm --dir script-hub test       # 包含类型检查、构建与产物测试
+pnpm --dir script-hub preview    # http://127.0.0.1:4173
+```
+
+构建输出到 `script-hub/dist/`，将这个目录整体上传到任意静态网站服务即可；所有下载链接都是相对路径，适用于 GitHub Pages 的仓库子路径。也可以直接打开生成的 `index.html` 查看页面。`preview` 只用于本地预览，不是生产服务器。
+
+```text
+script-hub/
+  scripts/<id>/index.ts       每个脚本项目的入口，可以包含更多本地 TS 模块
+  scripts/<id>/script.json    脚本介绍、参数定义、默认值和示例
+  shared/cli.ts               共用的参数解析、--help 和错误处理
+  web/index.html             独立静态页面模板
+  site.json                  网站标题、主项目介绍和可选链接
+  tools/                     脚本发现、打包、网页生成和预览
+  tests/                     产物、脚本行为与元数据验证测试
+  package.json               子项目专属依赖和命令
+  pnpm-lock.yaml             子项目独立锁文件
+  dist/index.html            生成的下载页面
+  dist/scripts/<id>.js       可独立下载的单文件脚本
+  dist/catalog.json          含文件大小、下载路径和 SHA-256 的脚本目录
+  dist/SHA256SUMS.txt         下载校验清单
+```
+
+下载后的运行示例：
+
+```bash
+node json-format.js "/absolute/path/data.json" --indent 4
+node file-hash.js "/absolute/path/archive.zip" --algorithm sha256
+node http-probe.js "https://example.com" --headers
+```
+
+在 Script Box 的运行配置中只填写文件路径、选项等启动参数，不要填写 `node` 或脚本文件名。相对路径以运行时工作目录为准，建议使用绝对路径。产物是 CommonJS：如果放入声明了 `"type": "module"` 的工程，请将后缀改为 `.cjs`。
+
+### 添加脚本
+
+1. 在 `script-hub/scripts/` 下新增目录（例如 `my-tool`），目录名和 `script.json` 的 `id` 必须一致，使用小写字母、数字和连字符。
+2. 添加 `index.ts` 和 `script.json`，参考现有脚本。元数据包含 `title`、`description`、`category`、`usage`、`options`、`examples`；选项支持 `string` / `boolean` 类型、可选的 `short` 和同类型的 `default`。`--help` / `-h` 由共用 CLI 提供，无需重复声明。
+3. 入口调用 `runCli(manifest, async ({ values, positionals }) => { ... })`，选项定义同时用于网页和 `--help`，避免重复维护。若需要第三方依赖，在子项目中用 `pnpm --dir script-hub add <包名>` 显式添加；不支持需要附带原生二进制或资源文件的依赖。
+4. 补充测试并运行 `pnpm --dir script-hub lint` 和 `pnpm --dir script-hub test`。构建会自动发现所有脚本目录，无需维护注册表或手动改 HTML。
+
+### GitHub Actions
+
+[Script Hub 工作流](./.github/workflows/script-hub.yml) 在相关路径的 push / PR 和手动触发时独立安装子项目依赖、检查代码、构建、测试，并上传 `script-hub-site` artifact（保留 14 天），内容就是完整的 `script-hub/dist/`。当前不部署 GitHub Pages，后续配置 Website 时可直接使用此目录作为发布内容。
+
+网站的主项目介绍在 `script-hub/site.json` 中独立维护，不读取主应用源码或配置。仓库地址可填写 `repositoryUrl`，安装包地址可填写 `releasesUrl`；留空时 GitHub Actions 会从 `GITHUB_REPOSITORY` 自动生成 GitHub 仓库和 Releases 链接，本地构建未配置时不显示链接。
+
 ## 数据目录
 
 所有数据都保存在系统的用户数据目录下，可以在 设置 → 关于 中打开：

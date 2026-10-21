@@ -1,0 +1,7 @@
+{
+  "title": "Script Box · 脚本中心",
+  "description": "下载一个文件，解决一件小事。这里收集可以直接运行的常用 Node.js 脚本。",
+  "projectDescription": "Script Box 是开箱即用的跨平台脚本运行器。无需预先安装 Node.js，即可在应用内下载运行时、创建隔离空间、编辑和运行 JavaScript / TypeScript 脚本，并使用交互式终端与运行历史。",
+  "repositoryUrl": "",
+  "releasesUrl": ""
+}

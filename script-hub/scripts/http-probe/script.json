@@ -1,0 +1,16 @@
+{
+  "id": "http-probe",
+  "title": "HTTP 可用性检查",
+  "description": "检查 HTTP / HTTPS 地址的响应状态、最终地址和响应头耗时，可选打印响应头。自动跟随重定向；网络错误、超时或非 2xx 状态以退出码 1 结束。使用 Node.js 原生 fetch，不自动读取 Script Box 的代理设置。",
+  "category": "网络工具",
+  "usage": "<URL> [--method HEAD] [--timeout 10000] [--headers]",
+  "options": [
+    { "name": "method", "type": "string", "short": "m", "default": "HEAD", "description": "请求方法：HEAD 或 GET；不会打印响应正文" },
+    { "name": "timeout", "type": "string", "short": "t", "default": "10000", "description": "等待响应头的超时时间，1–300000 毫秒" },
+    { "name": "headers", "type": "boolean", "description": "额外打印响应头" }
+  ],
+  "examples": [
+    { "args": "\"https://example.com\"", "description": "检查地址是否正常响应" },
+    { "args": "\"https://example.com\" --method GET --timeout 5000 --headers", "description": "使用 GET 并打印响应头" }
+  ]
+}
