@@ -65,6 +65,10 @@ function safeUrl(value) {
   return escapeHtml(url.href)
 }
 
+const ICON_DOWNLOAD = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7.5m0 0L5 7m3 3 3-3M3 12.5h10"/></svg>'
+const ICON_COPY = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5v-.5a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h.5"/></svg>'
+const ICON_EXTERNAL = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.5 3.5h-3v9h9v-3M9 2.5h4.5V7M13.5 2.5 7 9"/></svg>'
+
 export function renderPage(template, site, catalog, repository = '') {
   for (const field of ['title', 'description', 'projectDescription'])
     requireText(site[field], `site.${field}`)
@@ -72,17 +76,20 @@ export function renderPage(template, site, catalog, repository = '') {
   const links = [
     [repo, '查看主项目'],
     [site.releasesUrl || (repo ? `${repo.replace(/\/$/, '')}/releases` : ''), '下载 Script Box'],
-  ].filter(([url]) => url).map(([url, label]) => `<a class="text-link" href="${safeUrl(url)}" target="_blank" rel="noopener noreferrer">${label} ↗</a>`).join('')
+  ].filter(([url]) => url).map(([url, label]) => `<a class="btn btn-sm" href="${safeUrl(url)}" target="_blank" rel="noopener noreferrer">${label}${ICON_EXTERNAL}</a>`).join('')
   const cards = catalog.map((script) => {
+    const id = escapeHtml(script.id)
     const options = [...script.options, { name: 'help', short: 'h', type: 'boolean', description: '显示帮助和示例' }]
-    const rows = options.map(option => `<tr><td><code>--${escapeHtml(option.name)}${option.short ? ` / -${escapeHtml(option.short)}` : ''}${option.type === 'string' ? ' &lt;值&gt;' : ''}</code></td><td>${escapeHtml(option.description)}${option.default !== undefined ? `<br><small>默认：${escapeHtml(option.default)}</small>` : ''}</td></tr>`).join('')
-    const examples = script.examples.map(example => `<div class="example"><p>${escapeHtml(example.description)}</p><pre><code>node ${escapeHtml(script.id)}.js ${escapeHtml(example.args)}</code></pre><small>Script Box 启动参数：</small><pre><code>${escapeHtml(example.args)}</code></pre></div>`).join('')
-    return `<article class="script-card" id="${escapeHtml(script.id)}" data-search="${escapeHtml(`${script.title} ${script.id} ${script.category} ${script.description}`.toLowerCase())}">
-      <div class="card-heading"><span class="category">${escapeHtml(script.category)}</span><small>${escapeHtml(script.id)}.js</small></div>
-      <h3>${escapeHtml(script.title)}</h3><p>${escapeHtml(script.description)}</p>
-      <div class="download-row"><a class="download" href="${escapeHtml(script.download)}" download="${escapeHtml(script.id)}.js">下载脚本 ↓</a><small>${(script.bytes / 1024).toFixed(1)} KB · Node.js 22+</small></div>
-      <details><summary>启动参数与使用示例</summary><pre><code>node ${escapeHtml(script.id)}.js ${escapeHtml(script.usage)}</code></pre><div class="table-wrap"><table><thead><tr><th>参数</th><th>说明</th></tr></thead><tbody>${rows}</tbody></table></div>${examples}</details>
-      <details class="checksum"><summary>SHA-256 校验值</summary><code>${escapeHtml(script.sha256)}</code></details>
+    const rows = options.map(option => `<tr><td><code>--${escapeHtml(option.name)}${option.type === 'string' ? ' &lt;值&gt;' : ''}</code>${option.short ? `<span class="alias">-${escapeHtml(option.short)}</span>` : ''}</td><td>${escapeHtml(option.description)}${option.default !== undefined ? ` <span class="default">默认 ${escapeHtml(option.default)}</span>` : ''}</td></tr>`).join('')
+    const examples = script.examples.map(example => `<li><p>${escapeHtml(example.description)}</p><div class="code-line"><span>终端</span><code>node ${id}.js ${escapeHtml(example.args)}</code></div><div class="code-line"><span>Script Box</span><code>${escapeHtml(example.args)}</code></div></li>`).join('')
+    return `<article class="script-card" id="${id}" data-category="${escapeHtml(script.category)}" data-search="${escapeHtml(`${script.title} ${script.id} ${script.category} ${script.description}`.toLowerCase())}">
+      <div class="card-head"><span class="badge">${escapeHtml(script.category)}</span><span class="meta">${id}.js · ${(script.bytes / 1024).toFixed(1)} KB</span></div>
+      <h3>${escapeHtml(script.title)}</h3>
+      <p class="card-desc">${escapeHtml(script.description)}</p>
+      <code class="usage" title="node ${id}.js ${escapeHtml(script.usage)}">node ${id}.js ${escapeHtml(script.usage)}</code>
+      <div class="card-actions"><a class="btn btn-primary btn-sm" href="${escapeHtml(script.download)}" download="${id}.js">${ICON_DOWNLOAD}下载</a><button class="btn btn-sm" type="button" data-copy="node ${id}.js ${escapeHtml(script.examples[0].args)}" hidden>${ICON_COPY}<span>复制示例</span></button><span class="meta push">Node.js 22+</span></div>
+      <details class="fold"><summary>参数与示例<span class="pill">${options.length}</span></summary><div class="table-wrap"><table><tbody>${rows}</tbody></table></div><ul class="examples">${examples}</ul></details>
+      <details class="fold"><summary>SHA-256 校验值</summary><code class="hash">${escapeHtml(script.sha256)}</code></details>
     </article>`
   }).join('\n')
   const replacements = {

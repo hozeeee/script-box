@@ -7,120 +7,289 @@
   <meta name="color-scheme" content="light dark">
   <title>{{TITLE}}</title>
   <style>
-    :root { color-scheme: light; --bg: #f5f7fb; --surface: #fff; --text: #17233d; --muted: #5f6f87; --line: #dfe5ef; --accent: #315adc; --code: #eff3fa; }
+    :root { color-scheme: light; --bg: #fafafa; --surface: #fff; --text: #18181b; --muted: #71717a; --line: #e4e4e7; --line-strong: #d4d4d8; --accent: #2563eb; --accent-fg: #fff; --accent-soft: #eff6ff; --code: #f4f4f5; --ok: #16a34a; --shadow: 0 1px 2px #0000000a, 0 4px 16px #00000008; --mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Menlo, monospace; }
     * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.75 system-ui, -apple-system, "Segoe UI", sans-serif; }
-    a { color: var(--accent); text-underline-offset: 4px; }
-    a:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
-    .container { width: min(1120px, calc(100% - 40px)); margin: auto; }
-    .topbar { display: flex; justify-content: space-between; align-items: center; min-height: 80px; border-bottom: 1px solid var(--line); gap: 20px; }
-    .brand { color: var(--text); font-weight: 750; font-size: 19px; text-decoration: none; display: flex; align-items: center; gap: 12px; }
-    .brand-mark { background: var(--accent); color: #fff; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; font-family: monospace; }
-    .topbar nav { display: flex; gap: 24px; font-size: 14px; }
-    .topbar nav a { color: var(--muted); text-decoration: none; }
-    .hero { padding: 72px 0 46px; max-width: 760px; }
-    .eyebrow { color: var(--accent); font-size: 12px; letter-spacing: .16em; font-weight: 750; text-transform: uppercase; }
-    h1 { font-size: clamp(36px, 6vw, 60px); letter-spacing: -.045em; line-height: 1.15; margin: 16px 0 24px; }
-    .hero > p { color: var(--muted); font-size: 18px; max-width: 670px; }
-    .tags { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; color: var(--muted); font-size: 13px; }
-    .tags span { border: 1px solid var(--line); padding: 4px 12px; border-radius: 100px; }
-    .section-heading { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; margin: 26px 0; }
-    h2 { font-size: 25px; letter-spacing: -.03em; margin: 0; }
-    .section-heading p { color: var(--muted); margin: 3px 0 0; }
-    .search { font-size: 14px; color: var(--muted); }
-    .search input { display: block; width: 280px; max-width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; font: inherit; margin-top: 4px; }
-    .script-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: start; }
-    .script-card { min-width: 0; padding: 26px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 4px 12px #17233d04; }
-    .card-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
-    .category { color: var(--accent); font-size: 12px; font-weight: 650; padding: 2px 10px; background: var(--code); border-radius: 6px; }
-    small { color: var(--muted); font-size: 12px; }
-    h3 { font-size: 23px; line-height: 1.4; margin: 20px 0 12px; }
-    .script-card > p { margin: 0; color: var(--muted); }
-    .download-row { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin: 26px 0; }
-    .download { background: var(--accent); color: #fff; border-radius: 9px; padding: 10px 18px; text-decoration: none; font-weight: 650; font-size: 14px; }
-    .download:hover { filter: brightness(1.12); }
-    details { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 14px; }
-    summary { cursor: pointer; font-size: 14px; font-weight: 650; }
-    code { font-family: ui-monospace, "Cascadia Code", "SFMono-Regular", monospace; font-size: 12px; }
-    pre { background: var(--code); border-radius: 8px; padding: 12px; overflow-x: auto; line-height: 1.65; }
-    .table-wrap { overflow-x: auto; margin: 18px 0; }
-    table { border-collapse: collapse; text-align: left; width: 100%; font-size: 13px; }
-    td, th { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
-    td:first-child { min-width: 120px; }
-    .example { margin-top: 22px; }
-    .example p { font-size: 13px; margin: 0; }
-    .checksum { color: var(--muted); }
-    .checksum code { display: block; overflow-wrap: anywhere; margin-top: 12px; }
-    .guide { padding: 30px; border: 1px solid var(--line); border-radius: 16px; margin: 42px 0; background: var(--surface); }
-    .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; margin: 24px 0; }
-    .steps h3 { font-size: 16px; margin: 0 0 8px; }
-    .steps p { color: var(--muted); margin: 0; font-size: 14px; }
-    .note { color: var(--muted); font-size: 13px; }
-    .about { padding: 34px 0 50px; max-width: 820px; }
-    .about p { color: var(--muted); }
-    .project-links { display: flex; flex-wrap: wrap; gap: 24px; }
-    footer { border-top: 1px solid var(--line); padding: 24px 0 32px; font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    html { scroll-padding-top: 64px; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.6 system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: var(--accent); text-underline-offset: 3px; }
+    code, kbd { font-family: var(--mono); }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .container { width: min(1080px, calc(100% - 32px)); margin: auto; }
+
+    /* 顶栏 */
+    .topbar { position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: saturate(1.6) blur(10px); -webkit-backdrop-filter: saturate(1.6) blur(10px); }
+    .topbar .container { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 52px; }
+    .brand { display: flex; align-items: center; gap: 8px; color: var(--text); font-weight: 650; font-size: 15px; text-decoration: none; }
+    .brand-mark { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; background: var(--text); color: var(--bg); font: 700 10px/1 var(--mono); }
+    .brand-tag { border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; color: var(--muted); font-size: 11px; font-weight: 500; line-height: 18px; }
+    .topbar nav { display: flex; gap: 2px; }
+    .topbar nav a { color: var(--muted); font-size: 13px; text-decoration: none; padding: 4px 10px; border-radius: 6px; transition: color .15s, background .15s; }
+    .topbar nav a:hover { color: var(--text); background: var(--code); }
+
+    /* 首屏 */
+    .hero { padding: 44px 0 28px; max-width: 680px; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 500; }
+    .eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 20%, transparent); }
+    h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.2; letter-spacing: -.03em; margin: 12px 0 10px; }
+    .hero > p { color: var(--muted); font-size: 15px; margin: 0; }
+    .hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 20px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-left: 8px; }
+    .tags span { color: var(--muted); font-size: 12px; border: 1px solid var(--line); border-radius: 999px; padding: 0 9px; line-height: 22px; background: var(--surface); }
+
+    /* 按钮与输入框 */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--text); font: 500 13px/1 inherit; text-decoration: none; white-space: nowrap; cursor: pointer; transition: background .15s, border-color .15s, color .15s, filter .15s; }
+    .btn:hover { background: var(--code); }
+    .btn:active { transform: translateY(.5px); }
+    .btn svg { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+    .btn-sm { height: 28px; padding: 0 10px; gap: 5px; font-size: 12.5px; }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+    .btn-primary:hover { background: var(--accent); filter: brightness(1.1); }
+    .btn.copied { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, var(--line-strong)); }
+    .search { position: relative; display: block; width: 240px; }
+    .search > svg { position: absolute; left: 9px; top: 50%; width: 14px; height: 14px; transform: translateY(-50%); fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-linecap: round; pointer-events: none; }
+    .search input { width: 100%; height: 32px; padding: 0 32px 0 29px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--text); font: 13px/1 inherit; transition: border-color .15s, box-shadow .15s; }
+    .search input::placeholder { color: var(--muted); }
+    .search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+    .search input::-webkit-search-cancel-button { display: none; }
+    .search kbd { position: absolute; right: 7px; top: 50%; transform: translateY(-50%); min-width: 18px; padding: 0 4px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; color: var(--muted); font-size: 11px; line-height: 16px; text-align: center; pointer-events: none; }
+    .search input:focus + kbd, .search input:not(:placeholder-shown) + kbd { display: none; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+    /* 脚本列表 */
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 12px; }
+    .toolbar-title { display: flex; align-items: baseline; gap: 10px; }
+    h2 { font-size: 18px; letter-spacing: -.01em; line-height: 1.4; margin: 0; }
+    .count { color: var(--muted); font-size: 12.5px; margin: 0; }
+    .toolbar-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .filters { display: flex; flex-wrap: wrap; gap: 4px; }
+    .chip { height: 28px; padding: 0 10px; border: 1px solid transparent; border-radius: 999px; background: none; color: var(--muted); font: 500 12.5px/1 inherit; cursor: pointer; transition: background .15s, color .15s; }
+    .chip:hover { color: var(--text); background: var(--code); }
+    .chip[aria-pressed="true"] { color: var(--text); background: var(--surface); border-color: var(--line-strong); box-shadow: 0 1px 2px #0000000d; }
+    .chip small { margin-left: 4px; color: var(--muted); font-size: 11px; }
+    .script-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 12px; align-items: start; }
+    .script-card { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); transition: border-color .15s, box-shadow .15s; }
+    .script-card:hover { border-color: var(--line-strong); box-shadow: var(--shadow); }
+    .script-card:target { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .badge { padding: 0 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 11.5px; font-weight: 600; line-height: 20px; }
+    .meta { color: var(--muted); font-size: 12px; }
+    .script-card h3 { font-size: 15.5px; font-weight: 650; line-height: 1.4; margin: 10px 0 4px; }
+    .card-desc { min-height: 3.1em; margin: 0 0 12px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .usage { display: block; overflow: hidden; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--code); font-size: 12px; line-height: 1.5; white-space: nowrap; text-overflow: ellipsis; }
+    .usage::before { content: "$ "; color: var(--muted); user-select: none; }
+    .card-actions { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
+    .push { margin-left: auto; }
+
+    /* 折叠详情 */
+    .fold { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+    .fold + .fold { margin-top: 10px; }
+    .fold summary { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12.5px; font-weight: 500; cursor: pointer; list-style: none; user-select: none; border-radius: 4px; }
+    .fold summary::-webkit-details-marker { display: none; }
+    .fold summary::before { content: ""; width: 5px; height: 5px; margin: 0 3px 0 1px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); transition: transform .15s; }
+    .fold summary:hover, .fold[open] summary { color: var(--text); }
+    .fold[open] summary::before { transform: rotate(45deg); }
+    .pill { min-width: 18px; padding: 0 6px; border-radius: 999px; background: var(--code); color: var(--muted); font-size: 11px; line-height: 17px; text-align: center; }
+    .table-wrap { overflow-x: auto; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    td { padding: 6px 8px 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--muted); }
+    tr:last-child td { border-bottom: 0; }
+    td:first-child { white-space: nowrap; }
+    td code { color: var(--text); font-size: 12px; }
+    .alias { margin-left: 6px; padding: 0 4px; border: 1px solid var(--line); border-radius: 4px; font: 11px/16px var(--mono); }
+    .default { display: inline-block; padding: 0 5px; border-radius: 4px; background: var(--code); font-size: 11px; line-height: 17px; white-space: nowrap; }
+    .examples { list-style: none; margin: 6px 0 0; padding: 0; }
+    .examples li { margin-top: 10px; }
+    .examples p { margin: 0 0 4px; font-size: 12.5px; }
+    .code-line { display: flex; margin-top: 4px; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: var(--code); }
+    .code-line span { flex: none; width: 74px; padding: 4px 8px; border-right: 1px solid var(--line); background: var(--surface); color: var(--muted); font-size: 11px; line-height: 18px; }
+    .code-line code { min-width: 0; padding: 4px 8px; font-size: 12px; line-height: 18px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .hash { display: block; margin-top: 8px; padding: 6px 8px; border-radius: 6px; background: var(--code); color: var(--muted); font-size: 11.5px; overflow-wrap: anywhere; }
+    .empty { margin: 0; padding: 32px 16px; border: 1px dashed var(--line-strong); border-radius: 10px; color: var(--muted); font-size: 13px; text-align: center; }
+
+    /* 使用指南与关于 */
+    .section { margin-top: 44px; }
+    .section-head { margin-bottom: 12px; }
+    .section-head p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+    .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; counter-reset: step; }
+    .steps li { padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); counter-increment: step; }
+    .steps h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 14px; font-weight: 600; }
+    .steps h3::before { content: counter(step); display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--text); color: var(--bg); font-size: 11px; font-weight: 700; }
+    .steps p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .callout { margin-top: 12px; padding: 10px 14px 10px 32px; border: 1px solid var(--line); border-radius: 10px; background: var(--code); color: var(--muted); font-size: 12.5px; }
+    .callout li + li { margin-top: 4px; }
+    .callout code { color: var(--text); font-size: 11.5px; white-space: nowrap; }
+    .about { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 32px; padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(135deg, var(--accent-soft), var(--surface) 60%); }
+    .about-text { flex: 1 1 420px; }
+    .about .eyebrow::before { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+    .about h2 { margin: 4px 0 6px; }
+    .about p { margin: 0; color: var(--muted); font-size: 13px; }
+    .about p + p { margin-top: 6px; }
+    .project-links { display: flex; flex-wrap: wrap; gap: 8px; }
+    .project-links:empty { display: none; }
+    .project-links .btn:first-child { background: var(--text); border-color: var(--text); color: var(--bg); }
+    .project-links .btn:first-child:hover { filter: brightness(1.2); }
+    footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; margin-top: 44px; padding: 16px 0 28px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    footer nav { display: flex; gap: 16px; }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
     [hidden] { display: none !important; }
-    @media (max-width: 700px) { .hero { padding-top: 46px; } .script-grid, .steps { grid-template-columns: 1fr; } .script-card, .guide { padding: 22px; } .search, .search input { width: 100%; } .topbar nav { gap: 16px; } }
-    @media (prefers-color-scheme: dark) { :root { color-scheme: dark; --bg: #101622; --surface: #192130; --text: #e6ebf5; --muted: #a1b0c6; --line: #2e3a4e; --accent: #7795ff; --code: #222e43; } .download, .brand-mark { color: #101622; } }
+
+    @media (max-width: 720px) {
+      .brand-tag { display: none; }
+      .topbar nav a { padding: 4px 8px; }
+      .hero { padding: 32px 0 20px; }
+      .tags { margin-left: 0; }
+      .toolbar-tools, .search { width: 100%; }
+      .search { order: -1; }
+      .steps { grid-template-columns: 1fr; }
+    }
+    @media (hover: none) { .search kbd { display: none; } }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+    @media (prefers-color-scheme: dark) {
+      :root { color-scheme: dark; --bg: #09090b; --surface: #131316; --text: #f4f4f5; --muted: #a1a1aa; --line: #27272a; --line-strong: #3f3f46; --accent: #60a5fa; --accent-fg: #09090b; --accent-soft: #172036; --code: #1c1c20; --ok: #4ade80; --shadow: 0 1px 2px #0000004d, 0 4px 16px #00000040; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header class="topbar">
-      <a class="brand" href="#"><span class="brand-mark" aria-hidden="true">&gt;_</span> Script Box</a>
+  <header class="topbar">
+    <div class="container">
+      <a class="brand" href="#"><span class="brand-mark" aria-hidden="true">&gt;_</span>Script Box<span class="brand-tag">脚本中心</span></a>
       <nav aria-label="页面导航"><a href="#scripts">脚本库</a><a href="#guide">使用指南</a><a href="#about">关于</a></nav>
-    </header>
+    </div>
+  </header>
+  <div class="container">
     <main>
       <section class="hero">
         <span class="eyebrow">Small scripts. Useful things.</span>
-        <h1>常用脚本，<br>下载即用。</h1>
+        <h1>常用脚本，下载即用。</h1>
         <p>{{DESCRIPTION}}</p>
-        <div class="tags"><span>单文件 JavaScript</span><span>无需安装 npm 依赖</span><span>Windows · macOS · Linux</span></div>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#scripts">浏览脚本</a>
+          <a class="btn" href="#guide">使用指南</a>
+          <div class="tags"><span>单文件 JavaScript</span><span>无需安装 npm 依赖</span><span>Windows · macOS · Linux</span></div>
+        </div>
       </section>
       <section id="scripts" aria-labelledby="scripts-title">
-        <div class="section-heading">
-          <div><h2 id="scripts-title">脚本库</h2><p id="script-count" role="status">共 {{COUNT}} 个脚本 · 免费使用，源码开放</p></div>
-          <label class="search" id="search-box" hidden>查找脚本<input id="search" type="search" placeholder="搜索名称、用途或分类" autocomplete="off"></label>
+        <div class="toolbar">
+          <div class="toolbar-title"><h2 id="scripts-title">脚本库</h2><p class="count" id="script-count" role="status">共 {{COUNT}} 个脚本 · 免费使用，源码开放</p></div>
+          <div class="toolbar-tools">
+            <div class="filters" id="filters" role="group" aria-label="按分类筛选" hidden></div>
+            <label class="search" id="search-box" hidden>
+              <span class="sr-only">查找脚本</span>
+              <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
+              <input id="search" type="search" placeholder="搜索名称、用途或分类" autocomplete="off">
+              <kbd aria-hidden="true">/</kbd>
+            </label>
+          </div>
         </div>
         <div class="script-grid">{{CARDS}}</div>
-        <p id="empty" hidden>没有找到匹配的脚本，请试试其他关键词。</p>
+        <p class="empty" id="empty" hidden>没有找到匹配的脚本，请试试其他关键词或分类。</p>
       </section>
-      <section class="guide" id="guide" aria-labelledby="guide-title">
-        <h2 id="guide-title">如何使用？</h2>
-        <div class="steps">
-          <div><h3>01 / 下载脚本</h3><p>选择需要的工具，点击下载，保存一个独立的 .js 文件。无需下载整个项目。</p></div>
-          <div><h3>02 / 选择运行方式</h3><p>导入 Script Box 的普通运行空间，选择 Node.js 22+。也可以在已安装 Node.js 22+ 的终端中运行。</p></div>
-          <div><h3>03 / 设置参数并运行</h3><p>展开脚本的使用示例。在 Script Box 的运行配置中只填写参数，不需要添加 node 或脚本文件名。</p></div>
+      <section class="section" id="guide" aria-labelledby="guide-title">
+        <div class="section-head"><h2 id="guide-title">如何使用？</h2><p>三步即可在 Script Box 或任意终端中运行。</p></div>
+        <ol class="steps">
+          <li><h3>下载脚本</h3><p>选择需要的工具，点击下载，保存一个独立的 .js 文件。无需下载整个项目。</p></li>
+          <li><h3>选择运行方式</h3><p>导入 Script Box 的普通运行空间，选择 Node.js 22+。也可以在已安装 Node.js 22+ 的终端中运行。</p></li>
+          <li><h3>设置参数并运行</h3><p>展开脚本的使用示例。在 Script Box 的运行配置中只填写参数，不需要添加 node 或脚本文件名。</p></li>
+        </ol>
+        <ul class="callout">
+          <li>这些是 Node.js 脚本，网页只提供下载，不会在浏览器中运行。相对文件路径以运行时工作目录为准，建议使用绝对路径；路径中包含空格时请加双引号。以连字符开头的文件名可放在 <code>--</code> 后。</li>
+          <li>产物使用 CommonJS。在声明了 <code>"type": "module"</code> 的工程中使用时，请将下载文件后缀改为 <code>.cjs</code>。SHA-256 校验值可用于检查下载是否完整。</li>
+        </ul>
+      </section>
+      <section class="section about" id="about" aria-labelledby="about-title">
+        <div class="about-text">
+          <span class="eyebrow">Meet the runner</span>
+          <h2 id="about-title">关于 Script Box</h2>
+          <p>{{PROJECT_DESCRIPTION}}</p>
+          <p>脚本中心是独立构建的静态网站，不依赖桌面应用，也不需要后端服务。下载的脚本既可以在 Script Box 中使用，也可以单独运行。</p>
         </div>
-        <p class="note">这些是 Node.js 脚本，网页只提供下载，不会在浏览器中运行。相对文件路径以运行时工作目录为准，建议使用绝对路径；路径中包含空格时请加双引号。以连字符开头的文件名可放在 <code>--</code> 后。</p>
-        <p class="note">产物使用 CommonJS。在声明了 <code>"type": "module"</code> 的工程中使用时，请将下载文件后缀改为 <code>.cjs</code>。SHA-256 校验值可用于检查下载是否完整。</p>
-      </section>
-      <section class="about" id="about" aria-labelledby="about-title">
-        <span class="eyebrow">Meet the runner</span>
-        <h2 id="about-title">关于 Script Box</h2>
-        <p>{{PROJECT_DESCRIPTION}}</p>
-        <p>脚本中心是独立构建的静态网站，不依赖桌面应用，也不需要后端服务。下载的脚本既可以在 Script Box 中使用，也可以单独运行。</p>
         <div class="project-links">{{PROJECT_LINKS}}</div>
       </section>
     </main>
-    <footer><span>{{TITLE}} · MIT License</span><span><a href="./catalog.json" download>脚本目录</a> · <a href="./SHA256SUMS.txt" download>下载校验清单</a></span></footer>
+    <footer><span>{{TITLE}} · MIT License</span><nav aria-label="数据下载"><a href="./catalog.json" download>脚本目录 JSON</a><a href="./SHA256SUMS.txt" download>下载校验清单</a></nav></footer>
   </div>
   <script>
     const search = document.getElementById('search');
-    const cards = [...document.querySelectorAll('.script-card')];
+    const filters = document.getElementById('filters');
     const count = document.getElementById('script-count');
+    const empty = document.getElementById('empty');
+    const cards = [...document.querySelectorAll('.script-card')];
+    const defaultCount = count.textContent;
+    let category = '';
     document.getElementById('search-box').hidden = false;
-    search.addEventListener('input', () => {
+
+    function apply() {
       const query = search.value.trim().toLowerCase();
       let visible = 0;
       for (const card of cards) {
-        card.hidden = !card.dataset.search.includes(query);
+        card.hidden = !card.dataset.search.includes(query) || (category !== '' && card.dataset.category !== category);
         if (!card.hidden) visible++;
       }
-      count.textContent = query ? `找到 ${visible} / ${cards.length} 个脚本` : `共 ${cards.length} 个脚本 · 免费使用，源码开放`;
-      document.getElementById('empty').hidden = visible !== 0;
+      count.textContent = query || category ? `显示 ${visible} / ${cards.length} 个脚本` : defaultCount;
+      empty.hidden = visible !== 0;
+    }
+
+    // 只有存在多个分类时才显示筛选，避免单一分类时出现无意义的控件。
+    const categories = [...new Set(cards.map(card => card.dataset.category))];
+    if (categories.length > 1) {
+      for (const value of ['', ...categories]) {
+        const chip = document.createElement('button');
+        const total = document.createElement('small');
+        chip.type = 'button';
+        chip.className = 'chip';
+        chip.dataset.value = value;
+        chip.setAttribute('aria-pressed', String(value === category));
+        total.textContent = value ? cards.filter(card => card.dataset.category === value).length : cards.length;
+        chip.append(value || '全部', total);
+        filters.append(chip);
+      }
+      filters.hidden = false;
+      filters.addEventListener('click', (event) => {
+        const chip = event.target.closest('.chip');
+        if (!chip) return;
+        category = chip.dataset.value;
+        for (const item of filters.children) item.setAttribute('aria-pressed', String(item === chip));
+        apply();
+      });
+    }
+
+    search.addEventListener('input', apply);
+    search.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && search.value) {
+        search.value = '';
+        apply();
+      }
     });
+    document.addEventListener('keydown', (event) => {
+      const target = event.target;
+      if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey || target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
+      event.preventDefault();
+      search.focus();
+    });
+
+    // 剪贴板 API 仅在安全上下文可用，不可用时保持复制按钮隐藏。
+    if (navigator.clipboard && window.isSecureContext) {
+      for (const button of document.querySelectorAll('[data-copy]')) {
+        const label = button.querySelector('span');
+        let timer;
+        button.hidden = false;
+        button.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(button.dataset.copy);
+            label.textContent = '已复制';
+            button.classList.add('copied');
+          } catch {
+            label.textContent = '复制失败';
+          }
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            label.textContent = '复制示例';
+            button.classList.remove('copied');
+          }, 1500);
+        });
+      }
+    }
   </script>
 </body>
 </html>
