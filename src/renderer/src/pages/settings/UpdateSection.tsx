@@ -15,7 +15,9 @@ function StatusText({ status }: { status: UpdateStatus }): ReactNode {
   return (
     <Typography.Text type={type}>
       {t(`update.states.${status.state}`, { version: status.version ?? '' })}
-      {status.error && `: ${status.error}`}
+      {status.errorCode
+        ? `: ${t(`update.errors.${status.errorCode}`)}`
+        : status.error && `: ${status.error}`}
     </Typography.Text>
   )
 }

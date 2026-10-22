@@ -139,3 +139,18 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: gh release upload "$RELEASE_TAG" "script-hub-release/script-hub-${RELEASE_TAG#v}.zip" --clobber
+
+  # electron-builder uploads every platform into the same draft release (releaseType: draft).
+  # Drafts are invisible to electron-updater, so publish it once all platforms are uploaded.
+  publish:
+    name: Publish release
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Publish draft release
+        run: gh release edit "v$(node -p "require('./package.json').version")" --draft=false --latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

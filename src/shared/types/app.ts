@@ -13,6 +13,8 @@ export interface UpdateStatus {
   version?: string
   percent?: number
   error?: string
+  /** Known failure that the renderer shows with a translated message instead of `error` */
+  errorCode?: 'no-release'
 }
 
 export interface AppInfo {

@@ -113,6 +113,9 @@
       "downloading": "正在下载…",
       "downloaded": "新版本 {{version}} 已就绪",
       "error": "检查更新失败"
+    },
+    "errors": {
+      "no-release": "GitHub 上暂无已发布的正式版本"
     }
   },
   "editor": {

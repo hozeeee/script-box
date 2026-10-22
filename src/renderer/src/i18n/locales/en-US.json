@@ -113,6 +113,9 @@
       "downloading": "Downloading…",
       "downloaded": "Version {{version}} is ready to install",
       "error": "Update check failed"
+    },
+    "errors": {
+      "no-release": "no published release on GitHub yet"
     }
   },
   "editor": {
