@@ -62,7 +62,8 @@
     "nodeVersionDetected": "根据工程配置推荐的版本：{{version}}",
     "deleteProjectContent": "只会删除空间的运行配置和运行历史，不会删除工程目录 {{path}} 中的任何文件。",
     "projectBadge": "工程",
-    "projectMissing": "工程目录不存在，点击重新关联"
+    "projectMissing": "工程目录不存在，点击重新关联",
+    "running": "运行中"
   },
   "runtimes": {
     "title": "Node 运行时",

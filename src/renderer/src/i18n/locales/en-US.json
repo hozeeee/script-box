@@ -62,7 +62,8 @@
     "nodeVersionDetected": "Recommended by the project: {{version}}",
     "deleteProjectContent": "Only the run configuration and history of this space are removed. Nothing in the project directory {{path}} is deleted.",
     "projectBadge": "Project",
-    "projectMissing": "Project directory missing, click to relink"
+    "projectMissing": "Project directory missing, click to relink",
+    "running": "Running"
   },
   "runtimes": {
     "title": "Node runtimes",

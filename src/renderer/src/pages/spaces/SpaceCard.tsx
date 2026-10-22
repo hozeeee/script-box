@@ -1,9 +1,10 @@
 import type { Space } from '@shared/types'
 import type { ReactNode } from 'react'
 import { DeleteOutlined, EditOutlined, FolderOpenOutlined, HolderOutlined, LinkOutlined, WarningOutlined } from '@ant-design/icons'
+import { useRunsStore } from '@renderer/stores/runs'
 import { useRuntimesStore } from '@renderer/stores/runtimes'
 import { formatTime } from '@renderer/utils/format'
-import { Card, ConfigProvider, Flex, Tag, Tooltip, Typography } from 'antd'
+import { Badge, Card, ConfigProvider, Flex, Tag, Tooltip, Typography } from 'antd'
 import { useTranslation } from 'react-i18next'
 
 interface Props {
@@ -22,6 +23,9 @@ const ACTION_ICON: React.CSSProperties = { fontSize: 13, lineHeight: '20px' }
 export default function SpaceCard({ space, onOpen, onEdit, onRemove, onOpenDir, sorting = false }: Props): ReactNode {
   const { t } = useTranslation()
   const installed = useRuntimesStore(state => state.installed)
+  const running = useRunsStore(state => Object.values(state.sessions).some(session =>
+    session.record.spaceId === space.id && session.record.status === 'running',
+  ))
   const runtimeReady = !!space.nodeVersion && installed.some(item => item.version === space.nodeVersion)
 
   const stop = (fn: () => void) => (event: React.MouseEvent): void => {
@@ -49,6 +53,7 @@ export default function SpaceCard({ space, onOpen, onEdit, onRemove, onOpenDir, 
             {sorting && <HolderOutlined aria-hidden style={{ color: 'var(--ant-color-text-tertiary)' }} />}
             <Typography.Text strong ellipsis>{space.name}</Typography.Text>
             {space.projectPath && <Tag color="blue" style={{ margin: 0, flexShrink: 0 }}>{t('spaces.projectBadge')}</Tag>}
+            {running && <Badge status="processing" text={t('spaces.running')} style={{ marginInlineStart: 'auto', flexShrink: 0 }} />}
           </Flex>
           {space.projectPath
             ? (
