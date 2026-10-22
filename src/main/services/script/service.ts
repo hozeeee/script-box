@@ -7,7 +7,7 @@ import { spacePaths, spaceScriptsDir } from '../../paths'
 import { ensureDir, exists } from '../../utils/fs'
 import { assertProjectDir, spaceService } from '../space'
 import { resolveProjectScript } from '../space/project'
-import { isDeclarationFile, isScriptFile, isValidScriptName, isValidScriptPath, languageOf, uniqueName } from './naming'
+import { isDeclarationFile, isScriptFile, isScriptFileForKind, isValidScriptName, isValidScriptPath, languageOf, uniqueName } from './naming'
 import { listProjectEntries, resolveProjectEntry } from './project-files'
 import { templateFor } from './templates'
 import { walkProject } from './walk'
@@ -46,9 +46,10 @@ class ScriptService {
       return this.listProject(space, space.projectPath)
     const dir = await ensureDir(spacePaths.scripts(spaceId))
     const entries = await readdir(dir, { withFileTypes: true })
+    const kind = space.runtime?.kind ?? 'node'
     const files = await Promise.all(
       entries
-        .filter(entry => entry.isFile() && isScriptFile(entry.name))
+        .filter(entry => entry.isFile() && isScriptFileForKind(entry.name, kind))
         .map(async (entry) => {
           const info = await stat(join(dir, entry.name))
           return { name: entry.name, language: languageOf(entry.name), size: info.size, mtime: info.mtimeMs }
@@ -61,7 +62,7 @@ class ScriptService {
     const space = await this.workingSpace(spaceId)
     if (!space.projectPath)
       throw new AppError('INVALID_PROJECT', undefined, { path: '' })
-    return listProjectEntries(space.projectPath, directory)
+    return listProjectEntries(space.projectPath, directory, space.runtime?.kind ?? 'node')
   }
 
   async revealPath(spaceId: string, name: string): Promise<string> {
@@ -170,7 +171,8 @@ class ScriptService {
     if (!space.projectPath)
       return { files: [], truncated: false }
     const root = space.projectPath
-    const walked = await walkProject(root, { accept: isScriptFile })
+    const kind = space.runtime?.kind ?? 'node'
+    const walked = await walkProject(root, { accept: name => isScriptFileForKind(name, kind) })
     const files: ScriptSources['files'] = []
     let bytes = 0
     let truncated = walked.truncated
@@ -195,7 +197,8 @@ class ScriptService {
 
   private async listProject(space: Space, root: string): Promise<ScriptFile[]> {
     await assertProjectDir(root)
-    const walked = await walkProject(root, { accept: name => isScriptFile(name) && !isDeclarationFile(name) })
+    const kind = space.runtime?.kind ?? 'node'
+    const walked = await walkProject(root, { accept: name => isScriptFileForKind(name, kind) && !isDeclarationFile(name) })
     if (walked.truncated)
       this.truncated.add(space.id)
     else

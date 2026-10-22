@@ -6,6 +6,9 @@ export const NODE_MIRROR_CN = 'https://npmmirror.com/mirrors/node'
 export const NPM_REGISTRY_OFFICIAL = 'https://registry.npmjs.org'
 export const NPM_REGISTRY_CN = 'https://registry.npmmirror.com'
 
+export const PYPI_INDEX_OFFICIAL = 'https://pypi.org/simple'
+export const PYPI_INDEX_CN = 'https://pypi.tuna.tsinghua.edu.cn/simple'
+
 /** Common binary download mirrors for packages that fetch prebuilt files from GitHub/CDNs. */
 export const CN_BINARY_MIRRORS: EnvVar[] = [
   { key: 'ELECTRON_MIRROR', value: 'https://npmmirror.com/mirrors/electron/' },
@@ -25,6 +28,7 @@ export const DEFAULT_SETTINGS: Settings = {
   network: {
     nodeMirror: NODE_MIRROR_OFFICIAL,
     npmRegistry: NPM_REGISTRY_OFFICIAL,
+    pypiIndex: PYPI_INDEX_OFFICIAL,
     proxy: {
       enabled: false,
       http: '',
@@ -36,6 +40,7 @@ export const DEFAULT_SETTINGS: Settings = {
   run: {
     historyLimit: 50,
     defaultNodeVersion: null,
+    defaultPythonVersion: null,
   },
   update: {
     autoCheck: true,

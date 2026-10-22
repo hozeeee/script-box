@@ -9,7 +9,7 @@ import { monaco } from './monacoSetup'
 interface Props {
   /** Model URI, e.g. file:///spaces/<id>/scripts/main.ts */
   path: string
-  language: 'javascript' | 'typescript'
+  language: 'javascript' | 'typescript' | 'python'
   value: string
   onChange: (value: string) => void
   onSave: () => void

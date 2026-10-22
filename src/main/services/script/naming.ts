@@ -1,6 +1,6 @@
-import type { ScriptExtension, ScriptLanguage } from '@shared/types'
+import type { RuntimeKind, ScriptExtension, ScriptLanguage } from '@shared/types'
 import { extname } from 'node:path'
-import { SCRIPT_EXTENSIONS } from '@shared/types'
+import { NODE_SCRIPT_EXTENSIONS, PYTHON_SCRIPT_EXTENSIONS, SCRIPT_EXTENSIONS } from '@shared/types'
 
 // eslint-disable-next-line no-control-regex
 const INVALID_CHARS = /[<>:"/\\|?*\u0000-\u001F]/
@@ -16,7 +16,16 @@ export function isScriptFile(name: string): boolean {
 
 export function languageOf(name: string): ScriptLanguage {
   const ext = scriptExtension(name)
+  if (ext === '.py')
+    return 'python'
   return ext === '.ts' || ext === '.mts' || ext === '.cts' ? 'typescript' : 'javascript'
+}
+
+export function isScriptFileForKind(name: string, kind: RuntimeKind): boolean {
+  const ext = extname(name).toLowerCase()
+  if (kind === 'python')
+    return (PYTHON_SCRIPT_EXTENSIONS as readonly string[]).includes(ext)
+  return (NODE_SCRIPT_EXTENSIONS as readonly string[]).includes(ext)
 }
 
 export function isTypeScript(name: string): boolean {

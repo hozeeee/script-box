@@ -15,6 +15,21 @@ export const paths = {
   get runtimes() {
     return join(root(), 'runtimes', 'node')
   },
+  get pythonRuntimes() {
+    return join(root(), 'runtimes', 'python')
+  },
+  get tools() {
+    return join(root(), 'tools')
+  },
+  get uv() {
+    return join(root(), 'tools', 'uv')
+  },
+  get uvCache() {
+    return join(root(), 'tools', 'uv-cache')
+  },
+  get pythonTools() {
+    return join(root(), 'tools', 'python')
+  },
   get npmCache() {
     return join(root(), 'npm-cache')
   },
@@ -52,6 +67,8 @@ export const spacePaths = {
   nodeModules: (id: string) => join(spaceDir(id), 'node_modules'),
   scripts: (id: string) => join(spaceDir(id), 'scripts'),
   build: (id: string) => join(spaceDir(id), '.scriptbox', 'build'),
+  pythonVenv: (id: string) => join(spaceDir(id), '.scriptbox', 'python-venv'),
+  pythonSync: (id: string) => join(spaceDir(id), '.scriptbox', 'python-sync.json'),
 }
 
 /** Directory scripts run in and npm operates on: the project for project spaces */

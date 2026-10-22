@@ -43,6 +43,13 @@ interface ScriptNode extends TreeDataNode {
 const DIR_KEY = 'dir:'
 
 function LanguageBadge({ file }: { file: ScriptFile }): ReactNode {
+  if (file.language === 'python') {
+    return (
+      <span style={{ fontSize: 10, fontWeight: 700, width: 18, display: 'inline-block', color: '#3572a5' }}>
+        PY
+      </span>
+    )
+  }
   const ts = file.language === 'typescript'
   return (
     <span style={{ fontSize: 10, fontWeight: 700, width: 18, display: 'inline-block', color: ts ? '#3178c6' : '#d4a72c' }}>

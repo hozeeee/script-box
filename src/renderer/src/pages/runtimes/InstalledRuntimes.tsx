@@ -1,4 +1,4 @@
-import type { InstalledRuntime } from '@shared/types'
+import type { InstalledRuntime, RuntimeKind } from '@shared/types'
 import type { TableProps } from 'antd'
 import type { ReactNode } from 'react'
 import { DeleteOutlined, FolderOpenOutlined, StarFilled, StarOutlined } from '@ant-design/icons'
@@ -10,29 +10,30 @@ import { useSpacesStore } from '@renderer/stores/spaces'
 import { App, Button, Card, Space, Table, Tag, Tooltip } from 'antd'
 import { useTranslation } from 'react-i18next'
 
-export default function InstalledRuntimes(): ReactNode {
+export default function InstalledRuntimes({ kind }: { kind: RuntimeKind }): ReactNode {
   const { t } = useTranslation()
   const { message, modal } = App.useApp()
-  const installed = useRuntimesStore(state => state.installed)
+  const installed = useRuntimesStore(state => state.installed).filter(i => i.kind === kind)
   const remove = useRuntimesStore(state => state.remove)
   const spaces = useSpacesStore(state => state.spaces)
-  const defaultVersion = useSettingsStore(state => state.settings?.run.defaultNodeVersion)
+  const settings = useSettingsStore(state => state.settings)
+  const defaultVersion = kind === 'python' ? settings?.run.defaultPythonVersion : settings?.run.defaultNodeVersion
   const updateSettings = useSettingsStore(state => state.update)
 
-  const usedBy = (version: string): string[] =>
-    spaces.filter(space => space.nodeVersion === version).map(space => space.name)
+  const usedBy = (version: string, kind: string): string[] =>
+    spaces.filter(space => space.runtime?.version === version && space.runtime?.kind === kind).map(space => space.name)
 
   const confirmRemove = (runtime: InstalledRuntime): void => {
-    const users = usedBy(runtime.version)
+    const users = usedBy(runtime.version, runtime.kind)
     modal.confirm({
       title: t('runtimes.removeConfirm', { version: runtime.version }),
       content: users.length ? t('runtimes.removeInUse', { spaces: users.join(', ') }) : undefined,
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
-          await remove(runtime.version)
+          await remove(runtime.kind, runtime.version)
           if (defaultVersion === runtime.version)
-            await updateSettings({ run: { defaultNodeVersion: null } })
+            await updateSettings({ run: kind === 'python' ? { defaultPythonVersion: null } : { defaultNodeVersion: null } })
         }
         catch (error) {
           message.error(formatError(t, error))
@@ -52,13 +53,13 @@ export default function InstalledRuntimes(): ReactNode {
         </Space>
       ),
     },
-    { title: 'npm', dataIndex: 'npmVersion', render: (value: string | null) => value ?? '-' },
+    ...(kind === 'node' ? [{ title: 'npm', dataIndex: 'npmVersion', render: (value: string | null) => value ?? '-' }] : []),
     {
       title: t('runtimes.usedBy'),
       key: 'usedBy',
       render: (_, runtime) => (
         <Space size={4} wrap>
-          {usedBy(runtime.version).map(name => <Tag key={name} style={{ margin: 0 }}>{name}</Tag>)}
+          {usedBy(runtime.version, runtime.kind).map(name => <Tag key={name} style={{ margin: 0 }}>{name}</Tag>)}
         </Space>
       ),
     },
@@ -72,7 +73,7 @@ export default function InstalledRuntimes(): ReactNode {
             <Button
               type="text"
               icon={runtime.version === defaultVersion ? <StarFilled /> : <StarOutlined />}
-              onClick={() => void updateSettings({ run: { defaultNodeVersion: runtime.version } })}
+              onClick={() => void updateSettings({ run: kind === 'python' ? { defaultPythonVersion: runtime.version } : { defaultNodeVersion: runtime.version } })}
             />
           </Tooltip>
           <Tooltip title={t('common.openDir')}>

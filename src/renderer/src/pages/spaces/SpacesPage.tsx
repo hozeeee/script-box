@@ -1,7 +1,7 @@
-import type { Space } from '@shared/types'
+import type { RuntimeKind, Space } from '@shared/types'
 import type { DragEvent, ReactNode } from 'react'
 import type { PickedProject } from './SpaceFormModal'
-import { CheckOutlined, DragOutlined, FolderAddOutlined, PlusOutlined } from '@ant-design/icons'
+import { CheckOutlined, DragOutlined, FolderAddOutlined } from '@ant-design/icons'
 import { invoke } from '@renderer/api'
 import { formatError } from '@renderer/api/errors'
 import { useDocumentsStore } from '@renderer/stores/documents'
@@ -18,7 +18,7 @@ export default function SpacesPage(): ReactNode {
   const navigate = useNavigate()
   const { message, modal } = App.useApp()
   const { spaces, remove, reorder } = useSpacesStore()
-  const [editing, setEditing] = useState<{ open: boolean, space?: Space, project?: PickedProject }>({ open: false })
+  const [editing, setEditing] = useState<{ open: boolean, space?: Space, project?: PickedProject, runtimeKind?: RuntimeKind }>({ open: false })
   const [picking, setPicking] = useState(false)
   const [sorting, setSorting] = useState(false)
   const [orderedIds, setOrderedIds] = useState<string[]>([])
@@ -46,14 +46,14 @@ export default function SpacesPage(): ReactNode {
     })
   }
 
-  const pickProject = async (): Promise<void> => {
+  const pickProject = async (kind: RuntimeKind = 'node'): Promise<void> => {
     setPicking(true)
     try {
       const path = await invoke('app:select-directory')
       if (!path)
         return
-      const info = await invoke('space:inspect-project', path)
-      setEditing({ open: true, project: { path, info } })
+      const info = await invoke('space:inspect-project', path, kind)
+      setEditing({ open: true, project: { path, info }, runtimeKind: kind })
     }
     catch (error) {
       message.error(formatError(t, error))
@@ -145,11 +145,17 @@ export default function SpacesPage(): ReactNode {
               {t(sorting ? 'spaces.finishSorting' : 'spaces.sort')}
             </Button>
           )}
-          <Button icon={<FolderAddOutlined />} disabled={sorting} loading={picking} onClick={() => void pickProject()}>
-            {t('spaces.importProject')}
+          <Button icon={<FolderAddOutlined />} disabled={sorting} loading={picking} onClick={() => void pickProject('node')}>
+            {t('spaces.importNodeProject')}
           </Button>
-          <Button type="primary" icon={<PlusOutlined />} disabled={sorting} onClick={() => setEditing({ open: true })}>
-            {t('spaces.create')}
+          <Button icon={<FolderAddOutlined />} disabled={sorting} loading={picking} onClick={() => void pickProject('python')}>
+            {t('spaces.importPythonProject')}
+          </Button>
+          <Button type="primary" disabled={sorting} onClick={() => setEditing({ open: true, runtimeKind: 'node' })}>
+            {t('spaces.createNode')}
+          </Button>
+          <Button type="primary" disabled={sorting} onClick={() => setEditing({ open: true, runtimeKind: 'python' })}>
+            {t('spaces.createPython')}
           </Button>
         </Flex>
       </Flex>
@@ -158,8 +164,10 @@ export default function SpacesPage(): ReactNode {
         ? (
             <Empty description={t('spaces.empty')} style={{ marginTop: 80 }}>
               <Flex gap={8} justify="center">
-                <Button onClick={() => void pickProject()} loading={picking}>{t('spaces.importProject')}</Button>
-                <Button type="primary" onClick={() => setEditing({ open: true })}>{t('spaces.create')}</Button>
+                <Button onClick={() => void pickProject('node')} loading={picking}>{t('spaces.importNodeProject')}</Button>
+                <Button onClick={() => void pickProject('python')} loading={picking}>{t('spaces.importPythonProject')}</Button>
+                <Button type="primary" onClick={() => setEditing({ open: true, runtimeKind: 'node' })}>{t('spaces.createNode')}</Button>
+                <Button type="primary" onClick={() => setEditing({ open: true, runtimeKind: 'python' })}>{t('spaces.createPython')}</Button>
               </Flex>
             </Empty>
           )
@@ -209,6 +217,7 @@ export default function SpacesPage(): ReactNode {
         open={editing.open}
         space={editing.space}
         project={editing.project}
+        runtimeKind={editing.runtimeKind ?? editing.space?.runtime?.kind ?? 'node'}
         // Keep the space while the close animation plays so the title doesn't flip to "create"
         onClose={() => setEditing(prev => ({ ...prev, open: false }))}
         onSaved={(space) => {

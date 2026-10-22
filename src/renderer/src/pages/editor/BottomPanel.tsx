@@ -1,4 +1,4 @@
-import type { RunStatus } from '@shared/types'
+import type { RunStatus, RuntimeKind } from '@shared/types'
 import type { TabsProps } from 'antd'
 import type { ReactNode } from 'react'
 import { AppstoreOutlined, HistoryOutlined } from '@ant-design/icons'
@@ -23,12 +23,13 @@ const BADGE_STATUS: Record<RunStatus, 'processing' | 'success' | 'error' | 'defa
 
 interface Props {
   spaceId: string
+  runtimeKind: RuntimeKind
   activeKey: string
   onChange: (key: string) => void
 }
 
 /** Terminal tabs (one per script run) plus the dependency and history panels */
-export default function BottomPanel({ spaceId, activeKey, onChange }: Props): ReactNode {
+export default function BottomPanel({ spaceId, runtimeKind, activeKey, onChange }: Props): ReactNode {
   const { t } = useTranslation()
   const sessions = useRunsStore(state => state.sessions)
   const close = useRunsStore(state => state.close)
@@ -41,6 +42,8 @@ export default function BottomPanel({ spaceId, activeKey, onChange }: Props): Re
     [sessions, spaceId],
   )
 
+  const isNode = runtimeKind === 'node'
+
   const items: TabsProps['items'] = [
     ...runs.map(record => ({
       key: record.id,
@@ -48,11 +51,11 @@ export default function BottomPanel({ spaceId, activeKey, onChange }: Props): Re
       closable: record.status !== 'running',
       children: <RunTerminal runId={record.id} />,
     })),
-    { key: DEPS_TAB, label: t('deps.title'), icon: <AppstoreOutlined />, closable: false, children: <DepsPanel spaceId={spaceId} /> },
+    ...(isNode ? [{ key: DEPS_TAB, label: t('deps.title'), icon: <AppstoreOutlined />, closable: false, children: <DepsPanel spaceId={spaceId} /> }] : []),
     { key: HISTORY_TAB, label: t('history.title'), icon: <HistoryOutlined />, closable: false, children: <HistoryPanel spaceId={spaceId} /> },
   ]
 
-  const active = items.some(item => item.key === activeKey) ? activeKey : DEPS_TAB
+  const active = items.some(item => item.key === activeKey) ? activeKey : (isNode ? DEPS_TAB : HISTORY_TAB)
 
   return (
     <Tabs

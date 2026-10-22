@@ -15,3 +15,20 @@ rl.close()
 
 console.log(\`Hello, \${name || 'Script Box'}! Running on Node \${process.version}\`)
 `
+
+export const PYTHON_WELCOME_SCRIPT_NAME = 'hello.py'
+
+export const PYTHON_WELCOME_SCRIPT = `import sys
+
+name = input('What is your name? ')
+print(f'Hello, {name or "Script Box"}! Running on Python {sys.version}')
+`
+
+export function PYTHON_PYPROJECT_TEMPLATE(name: string, pythonVersion: string): string {
+  return `[project]
+name = "${name}"
+version = "0.0.1"
+requires-python = ">=${pythonVersion}"
+dependencies = []
+`
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseArgs } from '../runner/args'
-import { isValidScriptName, isValidScriptPath, languageOf, uniqueName } from './naming'
+import { isScriptFileForKind, isValidScriptName, isValidScriptPath, languageOf, uniqueName } from './naming'
 
 describe('script naming', () => {
   it('validates script names', () => {
@@ -21,6 +21,19 @@ describe('script naming', () => {
     expect(languageOf('a.ts')).toBe('typescript')
     expect(languageOf('a.cts')).toBe('typescript')
     expect(languageOf('a.mjs')).toBe('javascript')
+    expect(languageOf('a.py')).toBe('python')
+  })
+
+  it('filters script files by runtime kind', () => {
+    expect(isScriptFileForKind('a.ts', 'node')).toBe(true)
+    expect(isScriptFileForKind('a.js', 'node')).toBe(true)
+    expect(isScriptFileForKind('a.py', 'node')).toBe(false)
+    expect(isScriptFileForKind('a.py', 'python')).toBe(true)
+    expect(isScriptFileForKind('a.ts', 'python')).toBe(false)
+    expect(isScriptFileForKind('a.js', 'python')).toBe(false)
+    expect(isScriptFileForKind('a.mjs', 'python')).toBe(false)
+    expect(isScriptFileForKind('a.cjs', 'node')).toBe(true)
+    expect(isScriptFileForKind('a.mts', 'node')).toBe(true)
   })
 
   it('appends a counter on name clashes', () => {

@@ -16,8 +16,8 @@ export default function SpaceHeader({ space }: { space: Space }): ReactNode {
   const { token } = theme.useToken()
   const update = useSpacesStore(state => state.update)
 
-  const changeVersion = (nodeVersion: string | null): void => {
-    update(space.id, { nodeVersion }).catch(error => message.error(formatError(t, error)))
+  const changeVersion = (version: string | null): void => {
+    update(space.id, { runtime: { kind: space.runtime.kind, version } }).catch(error => message.error(formatError(t, error)))
   }
 
   return (
@@ -30,8 +30,8 @@ export default function SpaceHeader({ space }: { space: Space }): ReactNode {
       <Typography.Title level={5} style={{ margin: 0, flex: 1 }} ellipsis>
         {space.name}
       </Typography.Title>
-      <Typography.Text type="secondary">Node</Typography.Text>
-      <NodeVersionSelect value={space.nodeVersion} onChange={changeVersion} style={{ width: 220 }} />
+      <Typography.Text type="secondary">{space.runtime.kind === 'python' ? 'Python' : 'Node'}</Typography.Text>
+      <NodeVersionSelect value={space.runtime.version} onChange={changeVersion} kind={space.runtime.kind} style={{ width: 220 }} />
       <Tooltip title={t('common.openDir')}>
         <Button
           size="small"

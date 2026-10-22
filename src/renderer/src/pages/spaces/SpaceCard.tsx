@@ -26,7 +26,10 @@ export default function SpaceCard({ space, onOpen, onEdit, onRemove, onOpenDir, 
   const running = useRunsStore(state => Object.values(state.sessions).some(session =>
     session.record.spaceId === space.id && session.record.status === 'running',
   ))
-  const runtimeReady = !!space.nodeVersion && installed.some(item => item.version === space.nodeVersion)
+  const runtimeVersion = space.runtime?.version
+  const runtimeKind = space.runtime?.kind ?? 'node'
+  const runtimeReady = !!runtimeVersion && installed.some(item => item.version === runtimeVersion && item.kind === runtimeKind)
+  const runtimeLabel = runtimeKind === 'python' ? `Python ${runtimeVersion ?? ''}` : `Node ${runtimeVersion ?? ''}`
 
   const stop = (fn: () => void) => (event: React.MouseEvent): void => {
     event.stopPropagation()
@@ -77,8 +80,8 @@ export default function SpaceCard({ space, onOpen, onEdit, onRemove, onOpenDir, 
           )}
           <Flex justify="space-between" align="center" gap={8}>
             {runtimeReady
-              ? <Tag color="green" style={{ margin: 0 }}>{`Node ${space.nodeVersion}`}</Tag>
-              : <Tag color="warning" icon={<WarningOutlined />} style={{ margin: 0 }}>{space.nodeVersion ? `Node ${space.nodeVersion}` : t('spaces.noRuntime')}</Tag>}
+              ? <Tag color="green" style={{ margin: 0 }}>{runtimeLabel}</Tag>
+              : <Tag color="warning" icon={<WarningOutlined />} style={{ margin: 0 }}>{runtimeVersion ? runtimeLabel : t('spaces.noRuntime')}</Tag>}
             <Typography.Text type="secondary" ellipsis style={{ fontSize: 11 }}>{formatTime(space.updatedAt)}</Typography.Text>
           </Flex>
         </Flex>

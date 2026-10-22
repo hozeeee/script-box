@@ -22,12 +22,21 @@ export default function RunSection(): ReactNode {
             onChange={value => value && void update({ run: { historyLimit: value } })}
           />
         </Form.Item>
-        <Form.Item label={t('settings.defaultNode')} extra={t('settings.defaultNodeHint')} style={{ marginBottom: 0 }}>
+        <Form.Item label={t('settings.defaultNode')} extra={t('settings.defaultNodeHint')}>
           <NodeVersionSelect
             allowClear
             style={{ width: 200 }}
             value={settings.run.defaultNodeVersion}
             onChange={defaultNodeVersion => void update({ run: { defaultNodeVersion } })}
+          />
+        </Form.Item>
+        <Form.Item label={t('settings.defaultPython')} extra={t('settings.defaultPythonHint')} style={{ marginBottom: 0 }}>
+          <NodeVersionSelect
+            kind="python"
+            allowClear
+            style={{ width: 200 }}
+            value={settings.run.defaultPythonVersion}
+            onChange={defaultPythonVersion => void update({ run: { defaultPythonVersion } })}
           />
         </Form.Item>
       </Form>

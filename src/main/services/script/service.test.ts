@@ -9,6 +9,7 @@ function project(path = join('/tmp', 'project')): Space {
     id: 'space-1',
     name: 'Project',
     description: '',
+    runtime: { kind: 'node' as const, version: null },
     nodeVersion: null,
     createdAt: 0,
     updatedAt: 0,

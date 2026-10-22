@@ -1,3 +1,4 @@
+import type { RuntimeKind } from './runtime'
 import type { EnvVar } from './settings'
 
 export interface RunConfig {
@@ -10,11 +11,20 @@ export interface ScriptMeta {
   runConfig: RunConfig
 }
 
+export type PythonDependencyManager = 'uv' | 'poetry' | 'pdm' | 'requirements' | 'pep517' | 'none'
+
+export interface SpaceRuntime {
+  kind: RuntimeKind
+  version: string | null
+}
+
 export interface Space {
   id: string
   name: string
   description: string
-  nodeVersion: string | null
+  runtime: SpaceRuntime
+  pythonManager?: PythonDependencyManager
+  pythonVersionSource?: string | null
   createdAt: number
   updatedAt: number
   scripts: Record<string, ScriptMeta>
@@ -22,12 +32,16 @@ export interface Space {
   projectPath?: string
   /** Computed when listing, never persisted: the project directory is gone */
   projectMissing?: boolean
+  /** Legacy field, consumed only while migrating pre-Python spaces. */
+  nodeVersion?: string | null
 }
 
 export interface SpaceInput {
   name: string
   description?: string
-  nodeVersion: string | null
+  runtime: SpaceRuntime
+  pythonManager?: PythonDependencyManager
+  pythonVersionSource?: string | null
   /** Only honoured for project spaces (re-link after the project moved) */
   projectPath?: string
 }
@@ -43,6 +57,7 @@ export interface ProjectScriptGroup {
 }
 
 export interface ProjectInfo {
+  runtimeKind?: RuntimeKind
   /** 包含根工程及子目录 package.json 的命令分组 */
   scriptGroups?: ProjectScriptGroup[]
   scriptsTruncated?: boolean
@@ -51,7 +66,12 @@ export interface ProjectInfo {
   scripts: Record<string, string>
   /** Version requested by .nvmrc / .node-version / engines.node, e.g. `22` or `v22.11.0` */
   nodeVersionHint: string | null
-  /** package.json `name`, used to prefill the import dialog */
+  /** Python version pin or range requested by project metadata. */
+  pythonVersionHint?: string | null
+  pythonVersionSource?: string | null
+  pythonManager?: PythonDependencyManager
+  pythonManagerCandidates?: PythonDependencyManager[]
+  /** package.json/pyproject `name`, used to prefill the import dialog */
   packageName: string | null
   /** The script list hit its size limit and was cut short */
   truncated: boolean

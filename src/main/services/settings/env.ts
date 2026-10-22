@@ -24,6 +24,13 @@ export function buildNetworkEnv(network: NetworkSettings): Record<string, string
   if (registry)
     env.npm_config_registry = `${registry}/`
 
+  const pypiIndex = trimSlash(network.pypiIndex)
+  if (pypiIndex) {
+    env.PIP_INDEX_URL = pypiIndex
+    env.UV_INDEX_URL = pypiIndex
+    env.PDM_PYPI_URL = pypiIndex
+  }
+
   const proxy = resolveProxy(network.proxy)
   if (proxy) {
     if (proxy.http) {

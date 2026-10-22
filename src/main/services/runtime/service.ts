@@ -51,7 +51,7 @@ class RuntimeService extends EventEmitter<{ progress: [RuntimeInstallProgress] }
     const index = await fetchJson<IndexEntry[]>(`${mirror}/index.json`)
     const list = index
       .filter(item => item.files.includes(target.indexKey))
-      .map(({ version, date, lts, npm }) => ({ version, date, lts, npm }))
+      .map(({ version, date, lts, npm }) => ({ kind: 'node' as const, version, date, lts, npm }))
     this.remoteCache = { mirror, at: Date.now(), list }
     return list
   }
@@ -66,7 +66,7 @@ class RuntimeService extends EventEmitter<{ progress: [RuntimeInstallProgress] }
       if (this.installs.has(version) || !(await exists(nodeBinary(dir))))
         continue
       const npmPkg = await readJson<{ version?: string }>(join(npmDir(dir), 'package.json'), {})
-      result.push({ version, dir, npmVersion: npmPkg.version ?? null })
+      result.push({ kind: 'node', version, dir, npmVersion: npmPkg.version ?? null })
     }
     return result
   }
@@ -91,7 +91,7 @@ class RuntimeService extends EventEmitter<{ progress: [RuntimeInstallProgress] }
     if (this.installs.has(version))
       throw new AppError('RUNTIME_INSTALLING', undefined, { version })
     const controller = new AbortController()
-    const progress: RuntimeInstallProgress = { version, phase: 'download', received: 0, total: 0 }
+    const progress: RuntimeInstallProgress = { kind: 'node', version, phase: 'download', received: 0, total: 0 }
     this.installs.set(version, { controller, progress })
     this.report(progress)
     void this.doInstall(version, controller.signal, progress)

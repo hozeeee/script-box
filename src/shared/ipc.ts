@@ -9,13 +9,14 @@ import type {
   InstalledRuntime,
   ProjectEntry,
   ProjectInfo,
-  RemoteNodeVersion,
+  RemoteRuntimeVersion,
   RunConfig,
   RunExitEvent,
   RunOutputEvent,
   RunRecord,
   RunStartOptions,
   RuntimeInstallProgress,
+  RuntimeKind,
   ScriptFile,
   ScriptSources,
   Settings,
@@ -37,12 +38,12 @@ export interface IpcInvokeMap {
   'settings:update': (patch: DeepPartial<Settings>) => Settings
   'settings:test-connection': (url: string) => ConnectionTestResult
 
-  'runtime:list-remote': (force?: boolean) => RemoteNodeVersion[]
-  'runtime:list-installed': () => InstalledRuntime[]
-  'runtime:installing': () => RuntimeInstallProgress[]
-  'runtime:install': (version: string) => void
-  'runtime:cancel': (version: string) => void
-  'runtime:remove': (version: string) => void
+  'runtime:list-remote': (kind: RuntimeKind, force?: boolean) => RemoteRuntimeVersion[]
+  'runtime:list-installed': (kind?: RuntimeKind) => InstalledRuntime[]
+  'runtime:installing': (kind?: RuntimeKind) => RuntimeInstallProgress[]
+  'runtime:install': (kind: RuntimeKind, version: string) => void
+  'runtime:cancel': (kind: RuntimeKind, version: string) => void
+  'runtime:remove': (kind: RuntimeKind, version: string) => void
 
   'space:list': () => Space[]
   'space:get': (id: string) => Space
@@ -50,7 +51,7 @@ export interface IpcInvokeMap {
   'space:import-project': (input: SpaceInput & { projectPath: string }) => Space
   'space:project-info': (id: string) => ProjectInfo
   /** Read package.json & friends of a directory before importing it */
-  'space:inspect-project': (path: string) => ProjectInfo
+  'space:inspect-project': (path: string, kind?: RuntimeKind) => ProjectInfo
   'space:update': (id: string, input: Partial<SpaceInput>) => Space
   'space:reorder': (ids: string[]) => void
   'space:remove': (id: string) => void

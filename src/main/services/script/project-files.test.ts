@@ -16,7 +16,7 @@ afterEach(async () => {
 })
 
 describe('project files', () => {
-  it('shows all file types, ignored files, hidden files and empty directories', async () => {
+  it('shows all file types, hidden files and empty directories; filters ignored dirs', async () => {
     const root = await fixture()
     await mkdir(join(root, 'empty'))
     await mkdir(join(root, 'node_modules'))
@@ -28,12 +28,14 @@ describe('project files', () => {
     await writeFile(join(root, 'image.png'), new Uint8Array([1, 2, 3]))
     await writeFile(join(root, 'node_modules', 'example.js'), '')
     const entries = await listProjectEntries(root)
-    expect(entries.map(entry => entry.name)).toEqual(expect.arrayContaining(['empty', 'node_modules', 'package.json', '.env', '.gitignore', 'index.ts', 'index.d.ts', 'image.png']))
+    const names = entries.map(entry => entry.name)
+    // node_modules is in IGNORED_DIRS and should be filtered out
+    expect(names).toEqual(expect.arrayContaining(['empty', 'package.json', '.env', '.gitignore', 'index.ts', 'index.d.ts', 'image.png']))
+    expect(names).not.toContain('node_modules')
     expect(entries.find(entry => entry.name === 'index.ts')?.script?.language).toBe('typescript')
     expect(entries.find(entry => entry.name === 'index.d.ts')?.script).toBeUndefined()
     expect(entries.find(entry => entry.name === 'package.json')?.script).toBeUndefined()
     expect(await listProjectEntries(root, 'empty')).toEqual([])
-    expect((await listProjectEntries(root, 'node_modules')).map(entry => entry.name)).toEqual(['node_modules/example.js'])
   })
 
   it('lists symlinks for reveal without following them or allowing parent escapes', async () => {
@@ -53,5 +55,31 @@ describe('project files', () => {
       await expect(resolveProjectDirectory(root, path)).rejects.toMatchObject({ code: 'INVALID_SCRIPT_NAME' })
       await expect(resolveProjectEntry(root, path)).rejects.toMatchObject({ code: 'INVALID_SCRIPT_NAME' })
     }
+  })
+
+  it('filters script field by runtime kind', async () => {
+    const root = await fixture()
+    await writeFile(join(root, 'index.ts'), 'console.log(1)')
+    await writeFile(join(root, 'main.py'), 'print(1)')
+    const nodeEntries = await listProjectEntries(root, '', 'node')
+    expect(nodeEntries.find(e => e.name === 'index.ts')?.script?.language).toBe('typescript')
+    expect(nodeEntries.find(e => e.name === 'main.py')?.script).toBeUndefined()
+    const pyEntries = await listProjectEntries(root, '', 'python')
+    expect(pyEntries.find(e => e.name === 'main.py')?.script?.language).toBe('python')
+    expect(pyEntries.find(e => e.name === 'index.ts')?.script).toBeUndefined()
+  })
+
+  it('filters Python environment directories', async () => {
+    const root = await fixture()
+    await mkdir(join(root, '.venv'))
+    await mkdir(join(root, '__pycache__'))
+    await mkdir(join(root, '.pytest_cache'))
+    await mkdir(join(root, 'src'))
+    const entries = await listProjectEntries(root)
+    const names = entries.map(e => e.name)
+    expect(names).toContain('src')
+    expect(names).not.toContain('.venv')
+    expect(names).not.toContain('__pycache__')
+    expect(names).not.toContain('.pytest_cache')
   })
 })

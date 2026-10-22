@@ -1,3 +1,5 @@
+import type { RuntimeKind } from './runtime'
+
 export type RunStatus = 'running' | 'success' | 'failed' | 'stopped'
 
 export interface RunRecord {
@@ -5,7 +7,8 @@ export interface RunRecord {
   spaceId: string
   script: string
   args: string[]
-  nodeVersion: string
+  runtimeKind: RuntimeKind
+  runtimeVersion: string
   startedAt: number
   endedAt: number | null
   exitCode: number | null

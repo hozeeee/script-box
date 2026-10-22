@@ -10,11 +10,19 @@
 - [src/main/services/runner/args.ts](file://src/main/services/runner/args.ts)
 - [src/main/services/runner/history.ts](file://src/main/services/runner/history.ts)
 - [src/main/services/runner/transpile.ts](file://src/main/services/runner/transpile.ts)
+- [src/main/services/runner/interop.ts](file://src/main/services/runner/interop.ts)
 - [src/main/ipc/run.ts](file://src/main/ipc/run.ts)
 - [src/shared/types/run.ts](file://src/shared/types/run.ts)
 - [src/main/services/runtime/env.ts](file://src/main/services/runtime/env.ts)
 - [src/main/services/settings/env.ts](file://src/main/services/settings/env.ts)
 </cite>
+
+## 更新摘要
+**变更内容**   
+- 新增互操作性处理模块，支持 CommonJS 和 ESM 模块的无缝转换
+- 改进转译支持，提供更强大的错误处理和构建优化
+- 增强脚本发现机制，支持更灵活的项目结构识别
+- 完善错误处理策略，提供更详细的错误信息和上下文
 
 ## 目录
 1. [简介](#简介)
@@ -29,10 +37,12 @@
 10. [附录：扩展语言运行器与集成示例](#附录扩展语言运行器与集成示例)
 
 ## 简介
-Runner 服务负责在 Electron 主进程中启动、监控和终止用户脚本，提供终端交互、标准输入输出转发、运行历史记录以及多任务并发管理能力。它通过“语言运行器”抽象将不同脚本语言统一为可执行的命令行，结合 node-pty 实现伪终端会话，并通过 IPC 与渲染进程通信，暴露运行控制与历史查询接口。
+Runner 服务负责在 Electron 主进程中启动、监控和终止用户脚本，提供终端交互、标准输入输出转发、运行历史记录以及多任务并发管理能力。它通过"语言运行器"抽象将不同脚本语言统一为可执行的命令行，结合 node-pty 实现伪终端会话，并通过 IPC 与渲染进程通信，暴露运行控制与历史查询接口。
+
+**更新** 新增了强大的互操作性处理系统，支持 CommonJS 和 ESM 模块的无缝转换，改进了 TypeScript 转译的错误处理和脚本发现机制。
 
 ## 项目结构
-Runner 相关代码集中在 main 进程的 services/runner 目录，配合 ipc/run.ts 对外暴露 API，类型定义位于 shared/types/run.ts。运行时环境变量构建由 runtime/env.ts 与 settings/env.ts 共同完成，TypeScript 脚本的转译打包由 transpile.ts 驱动 esbuild。
+Runner 相关代码集中在 main 进程的 services/runner 目录，配合 ipc/run.ts 对外暴露 API，类型定义位于 shared/types/run.ts。运行时环境变量构建由 runtime/env.ts 与 settings/env.ts 共同完成，TypeScript 脚本的转译打包由 transpile.ts 驱动 esbuild，新增的 interop.ts 模块提供模块互操作性支持。
 
 ```mermaid
 graph TB
@@ -44,6 +54,7 @@ LT["languages/types.ts<br/>LanguageRunner 接口"]
 AR["args.ts<br/>参数解析"]
 HS["history.ts<br/>运行历史存储"]
 TR["transpile.ts<br/>TS 转译入口"]
+IO["interop.ts<br/>模块互操作性"]
 end
 subgraph "外部依赖"
 PTY["node-pty<br/>伪终端"]
@@ -68,6 +79,7 @@ RS --> PTY
 RS --> TK
 LN --> TR
 TR --> EB
+TR --> IO
 IPC --> RS
 IPC --> HS
 RS --> RT
@@ -80,7 +92,8 @@ RS --> RT
 - [src/main/services/runner/languages/types.ts:1-26](file://src/main/services/runner/languages/types.ts#L1-L26)
 - [src/main/services/runner/args.ts:1-49](file://src/main/services/runner/args.ts#L1-L49)
 - [src/main/services/runner/history.ts:1-94](file://src/main/services/runner/history.ts#L1-L94)
-- [src/main/services/runner/transpile.ts:1-67](file://src/main/services/runner/transpile.ts#L1-L67)
+- [src/main/services/runner/transpile.ts:1-78](file://src/main/services/runner/transpile.ts#L1-L78)
+- [src/main/services/runner/interop.ts:1-149](file://src/main/services/runner/interop.ts#L1-L149)
 - [src/main/ipc/run.ts:1-19](file://src/main/ipc/run.ts#L1-L19)
 - [src/shared/types/run.ts:1-28](file://src/shared/types/run.ts#L1-L28)
 - [src/main/services/runtime/env.ts:1-28](file://src/main/services/runtime/env.ts#L1-L28)
@@ -98,6 +111,7 @@ RS --> RT
 - 参数解析器：POSIX 风格解析命令行参数，支持引号与转义。
 - 历史存储：记录每次运行的元数据与日志，支持读取尾部日志、清理与恢复。
 - 转译器：对 TypeScript 脚本进行打包，保持相对路径语义并提供 CJS/ESM 兼容。
+- 互操作性处理器：处理 CommonJS 和 ESM 模块之间的相互导入，支持绝对路径解析。
 - IPC 路由：将前端请求映射到 RunnerService 与 historyStore 的方法。
 - 环境变量构建：合并宿主环境变量、网络设置与脚本自定义变量，确保 PATH 指向受管运行时。
 
@@ -107,7 +121,8 @@ RS --> RT
 - [src/main/services/runner/languages/node.ts:1-20](file://src/main/services/runner/languages/node.ts#L1-L20)
 - [src/main/services/runner/args.ts:1-49](file://src/main/services/runner/args.ts#L1-L49)
 - [src/main/services/runner/history.ts:1-94](file://src/main/services/runner/history.ts#L1-L94)
-- [src/main/services/runner/transpile.ts:1-67](file://src/main/services/runner/transpile.ts#L1-L67)
+- [src/main/services/runner/transpile.ts:1-78](file://src/main/services/runner/transpile.ts#L1-L78)
+- [src/main/services/runner/interop.ts:1-149](file://src/main/services/runner/interop.ts#L1-L149)
 - [src/main/ipc/run.ts:1-19](file://src/main/ipc/run.ts#L1-L19)
 - [src/main/services/runtime/env.ts:1-28](file://src/main/services/runtime/env.ts#L1-L28)
 - [src/main/services/settings/env.ts:1-73](file://src/main/services/settings/env.ts#L1-L73)
@@ -115,12 +130,16 @@ RS --> RT
 ## 架构总览
 Runner 服务作为主进程中的协调者，接收来自 IPC 的运行指令，解析脚本与参数，选择语言运行器，构造环境变量，使用 node-pty 启动子进程，并将 stdout/stderr 输出写入历史文件并广播给渲染进程。运行结束时更新状态、清理资源并持久化历史记录。
 
+**更新** 转译过程现在包含增强的互操作性处理，支持 CommonJS 和 ESM 模块的无缝转换，提供更好的错误处理和脚本发现机制。
+
 ```mermaid
 sequenceDiagram
 participant UI as "渲染进程"
 participant IPC as "IPC 路由"
 participant RS as "RunnerService"
 participant LR as "LanguageRunner(Node)"
+participant TR as "Transpiler"
+participant IO as "Interop Handler"
 participant ENV as "环境变量构建"
 participant PTY as "node-pty"
 participant HS as "HistoryStore"
@@ -128,6 +147,10 @@ UI->>IPC : run : start(spaceId, script, options)
 IPC->>RS : start(...)
 RS->>LR : prepare({space, script, source, args})
 LR-->>RS : {command, args, binDir, runtimeVersion}
+RS->>TR : prepareEntry(space, script, source, version)
+TR->>IO : cjsInteropPlugin/absoluteRequirePlugin
+IO-->>TR : 模块解析结果
+TR-->>RS : 编译后的入口路径
 RS->>ENV : buildProcessEnv(binDir, process.env, networkEnv, colorEnv, scriptEnv)
 RS->>HS : begin(record)
 RS->>PTY : spawn(command, args, {env, cwd, cols, rows})
@@ -142,6 +165,8 @@ RS->>UI : broadcast(run : exit)
 - [src/main/ipc/run.ts:4-17](file://src/main/ipc/run.ts#L4-L17)
 - [src/main/services/runner/service.ts:44-88](file://src/main/services/runner/service.ts#L44-L88)
 - [src/main/services/runner/languages/node.ts:9-18](file://src/main/services/runner/languages/node.ts#L9-L18)
+- [src/main/services/runner/transpile.ts:22-77](file://src/main/services/runner/transpile.ts#L22-L77)
+- [src/main/services/runner/interop.ts:78-149](file://src/main/services/runner/interop.ts#L78-L149)
 - [src/main/services/runtime/env.ts:10-26](file://src/main/services/runtime/env.ts#L10-L26)
 - [src/main/services/runner/history.ts:19-28](file://src/main/services/runner/history.ts#L19-L28)
 
@@ -300,7 +325,7 @@ PATH --> R["返回最终 env"]
   - 列表按开始时间倒序；
   - 大日志只读取尾部固定长度；
   - 清理运行中以外的历史；
-  - 恢复崩溃导致的“running”状态为“stopped”。
+  - 恢复崩溃导致的"running"状态为"stopped"。
 
 ```mermaid
 flowchart TD
@@ -329,6 +354,8 @@ Recover["recoverStale()"] --> MarkStopped["标记 running -> stopped"]
   - 为 ESM 提供 globalThis.require 兼容；
   - 捕获构建错误并抛出 AppError('BUILD_FAILED')。
 
+**更新** 新增互操作性处理插件，支持 CommonJS 和 ESM 模块的无缝转换，提供更好的错误处理和脚本发现机制。
+
 ```mermaid
 flowchart TD
 In["prepareEntry(spaceId, script, source, version)"] --> CheckTS{"是否 TypeScript?"}
@@ -336,16 +363,55 @@ CheckTS --> |否| ReturnSrc["返回源路径"]
 CheckTS --> |是| EnsureBuild["确保 build 目录"]
 EnsureBuild --> OutFile["计算输出文件路径"]
 OutFile --> Esbuild["esbuild 构建"]
-Esbuild --> Define["注入常量与 require 兼容"]
+Esbuild --> Interop["应用互操作性插件"]
+Interop --> Define["注入常量与 require 兼容"]
 Define --> Success["返回打包入口"]
 Esbuild --> Error["构建失败 -> BUILD_FAILED"]
 ```
 
 **图表来源**
-- [src/main/services/runner/transpile.ts:18-66](file://src/main/services/runner/transpile.ts#L18-L66)
+- [src/main/services/runner/transpile.ts:18-77](file://src/main/services/runner/transpile.ts#L18-L77)
 
 **章节来源**
-- [src/main/services/runner/transpile.ts:1-67](file://src/main/services/runner/transpile.ts#L1-L67)
+- [src/main/services/runner/transpile.ts:1-78](file://src/main/services/runner/transpile.ts#L1-L78)
+
+### 互操作性处理系统
+- cjsInteropPlugin：
+  - 处理 CommonJS 包在 ESM 环境中的导入；
+  - 支持命名导出和默认导出的正确解析；
+  - 处理内置模块和第三方包的区分；
+  - 支持绝对路径模式下的包解析。
+- absoluteRequirePlugin：
+  - 将 CommonJS 输出的 require 语句重写为绝对路径；
+  - 处理跨目录结构的模块引用；
+  - 支持 tsconfig paths 别名和链接工作区包。
+- isEsmFile：
+  - 检测文件是否为 ES 模块；
+  - 支持 .mjs 扩展名和 package.json type: module；
+  - 向上遍历查找 package.json 确定模块类型。
+
+```mermaid
+flowchart TD
+Import["模块导入"] --> CheckKind{"导入类型检查"}
+CheckKind --> |CommonJS| CJS["cjsInteropPlugin"]
+CheckKind --> |ESM| ESM["原生 ESM 处理"]
+CJS --> Resolve["解析模块路径"]
+Resolve --> TypeCheck{"模块类型检测"}
+TypeCheck --> |ESM| Native["原生导入"]
+TypeCheck --> |CJS| Wrap["包装为 ESM 兼容"]
+Wrap --> Output["输出兼容代码"]
+Native --> Output
+ESM --> Output
+Output --> Result["成功解析的模块"]
+```
+
+**图表来源**
+- [src/main/services/runner/interop.ts:78-119](file://src/main/services/runner/interop.ts#L78-L119)
+- [src/main/services/runner/interop.ts:126-149](file://src/main/services/runner/interop.ts#L126-L149)
+- [src/main/services/runner/interop.ts:30-37](file://src/main/services/runner/interop.ts#L30-L37)
+
+**章节来源**
+- [src/main/services/runner/interop.ts:1-149](file://src/main/services/runner/interop.ts#L1-L149)
 
 ### IPC 与事件模型
 - 注册 IPC：
@@ -389,6 +455,9 @@ IPC->>RS : resize(runId, cols, rows)
 - 语言运行器依赖：
   - runtimeService：解析 Node 运行时；
   - transpile：准备入口。
+- 转译器依赖：
+  - interop：模块互操作性处理；
+  - esbuild：打包工具。
 - IPC 依赖：
   - runnerService 与 historyStore；
   - helpers：handle/listen/broadcast。
@@ -404,6 +473,7 @@ RS --> HIST["history"]
 RS --> TR["transpile"]
 LANG --> RN["languages/node"]
 RN --> TR
+TR --> IO["interop"]
 IPC["ipc/run"] --> RS
 IPC --> HIST
 ```
@@ -412,12 +482,14 @@ IPC --> HIST
 - [src/main/services/runner/service.ts:1-18](file://src/main/services/runner/service.ts#L1-L18)
 - [src/main/services/runner/languages/index.ts:1-11](file://src/main/services/runner/languages/index.ts#L1-L11)
 - [src/main/services/runner/languages/node.ts:1-18](file://src/main/services/runner/languages/node.ts#L1-L18)
+- [src/main/services/runner/transpile.ts:1-11](file://src/main/services/runner/transpile.ts#L1-L11)
 - [src/main/ipc/run.ts:1-17](file://src/main/ipc/run.ts#L1-L17)
 
 **章节来源**
 - [src/main/services/runner/service.ts:1-18](file://src/main/services/runner/service.ts#L1-L18)
 - [src/main/services/runner/languages/index.ts:1-11](file://src/main/services/runner/languages/index.ts#L1-L11)
 - [src/main/services/runner/languages/node.ts:1-18](file://src/main/services/runner/languages/node.ts#L1-L18)
+- [src/main/services/runner/transpile.ts:1-11](file://src/main/services/runner/transpile.ts#L1-L11)
 - [src/main/ipc/run.ts:1-17](file://src/main/ipc/run.ts#L1-L17)
 
 ## 性能与并发特性
@@ -430,10 +502,15 @@ IPC --> HIST
 - 资源清理：
   - 退出时立即结束日志流并从活动表移除；
   - 异步保存历史，异常不影响主流程。
+- 转译优化：
+  - 增量构建，避免重复编译；
+  - 并行模块解析，提升构建速度；
+  - 智能缓存，减少不必要的重建。
 - 建议：
   - 合理限制历史保留数量；
   - 对超大日志考虑分片或压缩；
-  - 监控 pty 内存占用与句柄泄漏。
+  - 监控 pty 内存占用与句柄泄漏；
+  - 监控构建缓存大小和清理策略。
 
 [本节为通用指导，不直接分析具体文件]
 
@@ -443,7 +520,12 @@ IPC --> HIST
   - 确认脚本文件存在。
 - 构建失败：
   - 查看构建错误消息，定位 TS 编译问题；
-  - 检查目标 Node 版本与语法兼容性。
+  - 检查目标 Node 版本与语法兼容性；
+  - 验证模块依赖是否正确安装。
+- 模块导入错误：
+  - 检查 CommonJS 和 ESM 模块的混用情况；
+  - 验证 package.json 的 exports 配置；
+  - 确认模块路径解析是否正确。
 - 进程无法终止：
   - Windows 下直接 kill pty；
   - 其他平台先 SIGTERM，3 秒后 SIGKILL；
@@ -455,13 +537,17 @@ IPC --> HIST
   - 重启后 recoverStale 会将残留 running 标记修正；
   - 检查 historyLimit 配置是否过短。
 
+**更新** 新增模块导入相关的故障排查指导，帮助解决 CommonJS 和 ESM 模块互操作问题。
+
 **章节来源**
 - [src/main/services/runner/service.ts:101-115](file://src/main/services/runner/service.ts#L101-L115)
-- [src/main/services/runner/transpile.ts:58-64](file://src/main/services/runner/transpile.ts#L58-L64)
+- [src/main/services/runner/transpile.ts:69-75](file://src/main/services/runner/transpile.ts#L69-L75)
 - [src/main/services/runner/history.ts:73-86](file://src/main/services/runner/history.ts#L73-L86)
 
 ## 结论
-Runner 服务通过清晰的职责划分与可扩展的语言运行器抽象，实现了脚本的统一执行、终端交互、历史管理与并发控制。其环境变量构建策略确保了受管运行时的优先级与网络设置的正确注入，IPC 层提供了简洁的前端集成点。对于新增语言支持，只需实现 LanguageRunner 接口并注册即可无缝接入现有体系。
+Runner 服务通过清晰的职责划分与可扩展的语言运行器抽象，实现了脚本的统一执行、终端交互、历史管理与并发控制。其环境变量构建策略确保了受管运行时的优先级与网络设置的正确注入，IPC 层提供了简洁的前端集成点。新增的互操作性处理系统显著提升了模块兼容性，支持 CommonJS 和 ESM 模块的无缝转换，改进了错误处理和脚本发现机制。对于新增语言支持，只需实现 LanguageRunner 接口并注册即可无缝接入现有体系。
+
+**更新** 互操作性处理系统的引入使得 Runner 服务能够更好地处理现代 JavaScript 生态中的模块混合使用场景，提供了更好的开发体验和更稳定的运行环境。
 
 [本节为总结性内容，不直接分析具体文件]
 
@@ -518,3 +604,21 @@ Stopped --> [*]
 **章节来源**
 - [src/main/services/runner/service.ts:122-143](file://src/main/services/runner/service.ts#L122-L143)
 - [src/shared/types/run.ts:1-28](file://src/shared/types/run.ts#L1-L28)
+
+### 互操作性处理最佳实践
+- CommonJS 与 ESM 混用：
+  - 使用 cjsInteropPlugin 自动处理 CommonJS 包的 ESM 导入；
+  - 在 ESM 环境中使用 globalThis.require 访问 CommonJS 模块；
+  - 避免在 ESM 中直接使用 require 语句。
+- 绝对路径解析：
+  - 对于跨目录结构的模块引用，使用 absoluteRequirePlugin；
+  - 确保模块路径在项目结构中正确解析；
+  - 处理符号链接和相对路径的情况。
+- 错误处理：
+  - 捕获模块解析失败的错误；
+  - 提供详细的错误信息和解决方案；
+  - 支持调试模式和详细日志输出。
+
+**章节来源**
+- [src/main/services/runner/interop.ts:78-149](file://src/main/services/runner/interop.ts#L78-L149)
+- [src/main/services/runner/interop.test.ts:1-114](file://src/main/services/runner/interop.test.ts#L1-L114)

@@ -1,7 +1,9 @@
+import type { RuntimeKind } from '@shared/types'
 import { AppError } from '@shared/errors'
 import { shell } from 'electron'
 import { spaceWorkDir } from '../paths'
 import { depsService } from '../services/deps'
+import { inspectPythonProject } from '../services/python/project'
 import { runnerService } from '../services/runner'
 import { scriptService } from '../services/script'
 import { assertProjectDir, normalizeProjectPath, readProjectInfo, spaceService } from '../services/space'
@@ -42,7 +44,27 @@ export function registerSpaceIpc(): void {
     return { ...info, ...commands, truncated: scriptService.wasTruncated(id) }
   })
 
-  handle('space:inspect-project', async (path) => {
+  handle('space:inspect-project', async (path: string, kind?: RuntimeKind) => {
+    if (kind === 'python') {
+      const { stat } = await import('node:fs/promises')
+      const info = await stat(path)
+      if (!info.isDirectory())
+        throw new AppError('INVALID_PROJECT', undefined, { path })
+      const pyInfo = await inspectPythonProject(path)
+      return {
+        runtimeKind: 'python' as const,
+        packageManager: 'npm' as const,
+        scripts: {},
+        nodeVersionHint: null,
+        pythonVersionHint: pyInfo.pythonVersionHint,
+        pythonVersionSource: pyInfo.pythonVersionSource,
+        pythonManager: pyInfo.manager,
+        pythonManagerCandidates: pyInfo.managerCandidates,
+        packageName: pyInfo.name,
+        truncated: false,
+        pnp: false,
+      }
+    }
     const dir = await normalizeProjectPath(path)
     return { ...(await readProjectInfo(dir)), truncated: false }
   })

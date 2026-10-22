@@ -2,7 +2,6 @@ import type { MenuProps } from 'antd'
 import type { ReactNode } from 'react'
 import { AppstoreOutlined, NodeIndexOutlined, SettingOutlined } from '@ant-design/icons'
 import UpdateNotifier from '@renderer/components/common/UpdateNotifier'
-import FirstRunGuide from '@renderer/components/runtime/FirstRunGuide'
 import { Layout, Menu, theme, Typography } from 'antd'
 import { useTranslation } from 'react-i18next'
 import { Outlet, useLocation, useNavigate } from 'react-router'
@@ -45,7 +44,6 @@ export default function MainLayout(): ReactNode {
       <Content className="fill" style={{ background: token.colorBgContainer }}>
         <Outlet />
       </Content>
-      <FirstRunGuide />
       <UpdateNotifier />
     </Layout>
   )

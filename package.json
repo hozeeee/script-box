@@ -1,7 +1,7 @@
 {
   "name": "script-box",
   "productName": "Script Box",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "packageManager": "pnpm@10.34.7",
   "description": "Out-of-the-box script runner. Pick a script and run it, no runtime installation required.",
@@ -35,6 +35,7 @@
     "extract-zip": "^2.0.1",
     "ignore": "^7.0.12",
     "node-pty": "^1.1.0",
+    "smol-toml": "^1.9.1",
     "tar": "^7.5.22",
     "tree-kill": "^1.2.2"
   },

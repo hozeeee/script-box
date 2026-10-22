@@ -1,6 +1,7 @@
+import type { RuntimeKind } from '@shared/types'
 import type { ReactNode } from 'react'
 import { formatError } from '@renderer/api/errors'
-import { SCRIPT_EXTENSIONS } from '@shared/types'
+import { NODE_SCRIPT_EXTENSIONS, PYTHON_SCRIPT_EXTENSIONS, SCRIPT_EXTENSIONS } from '@shared/types'
 import { App, Form, Input, Modal, Select } from 'antd'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -12,6 +13,8 @@ interface Props {
   initialName?: string
   /** Accept `dir/name` paths (imported projects) */
   allowPath?: boolean
+  /** Filter available extensions by runtime kind */
+  runtimeKind?: RuntimeKind
   onSubmit: (name: string) => Promise<void>
   onClose: () => void
 }
@@ -33,17 +36,23 @@ function isValidPath(value: string): boolean {
   return value.split('/').every(segment => segment.trim() === segment && segment !== '' && segment !== '.' && segment !== '..')
 }
 
-function split(name?: string): FormValues {
-  const ext = SCRIPT_EXTENSIONS.find(item => name?.endsWith(item))
-  return ext ? { base: name!.slice(0, -ext.length), ext } : { base: name ?? '', ext: '.ts' }
+function split(name: string | undefined, extensions: readonly string[]): FormValues {
+  const ext = extensions.find(item => name?.endsWith(item))
+  return ext ? { base: name!.slice(0, -ext.length), ext } : { base: name ?? '', ext: extensions[0]! }
 }
 
 /** Name input with an extension picker, used for both creating and renaming scripts */
-export default function ScriptNameModal({ open, title, initialName, allowPath = false, onSubmit, onClose }: Props): ReactNode {
+export default function ScriptNameModal({ open, title, initialName, allowPath = false, runtimeKind, onSubmit, onClose }: Props): ReactNode {
   const { t } = useTranslation()
   const { message } = App.useApp()
   const [form] = Form.useForm<FormValues>()
   const [saving, setSaving] = useState(false)
+
+  const extensions = runtimeKind === 'python'
+    ? PYTHON_SCRIPT_EXTENSIONS
+    : runtimeKind === 'node'
+      ? NODE_SCRIPT_EXTENSIONS
+      : SCRIPT_EXTENSIONS
 
   const submit = async (): Promise<void> => {
     const { base, ext } = await form.validateFields()
@@ -64,7 +73,7 @@ export default function ScriptNameModal({ open, title, initialName, allowPath = 
     <Modal open={open} title={title} confirmLoading={saving} onOk={() => void submit()} onCancel={onClose} destroyOnHidden>
       {/* The form is remounted on every open (destroyOnHidden), so initialValues is applied each time;
           setFieldsValue from an effect would run before the form mounts and get wiped */}
-      <Form form={form} preserve={false} initialValues={split(initialName)} onFinish={() => void submit()}>
+      <Form form={form} preserve={false} initialValues={split(initialName, extensions)} onFinish={() => void submit()}>
         <Form.Item
           name="base"
           rules={[
@@ -85,7 +94,7 @@ export default function ScriptNameModal({ open, title, initialName, allowPath = 
                 <Select
                   variant="borderless"
                   style={{ width: 80 }}
-                  options={SCRIPT_EXTENSIONS.map(ext => ({ value: ext, label: ext }))}
+                  options={extensions.map(ext => ({ value: ext, label: ext }))}
                 />
               </Form.Item>
             )}

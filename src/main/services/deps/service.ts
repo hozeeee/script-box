@@ -133,7 +133,7 @@ class DepsService extends EventEmitter<{ task: [DepTaskEvent] }> {
       throw new AppError('DEPS_BUSY')
     if (space.projectPath)
       await assertProjectDir(space.projectPath)
-    const runtime = await runtimeService.resolve(space.nodeVersion)
+    const runtime = await runtimeService.resolve(space.runtime?.version ?? space.nodeVersion ?? null)
     // Regular spaces are always managed with npm; projects keep the manager they were set up with
     const manager = space.projectPath ? await detectPackageManager(space.projectPath) : 'npm'
     const launcher = await resolvePackageManager(manager, runtime)

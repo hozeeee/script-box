@@ -7,6 +7,7 @@ export type ErrorCode
     | 'INVALID_SCRIPT_NAME'
     | 'UNSUPPORTED_SCRIPT'
     | 'NO_NODE_VERSION'
+    | 'NO_PYTHON_VERSION'
     | 'RUNTIME_NOT_INSTALLED'
     | 'RUNTIME_INSTALLING'
     | 'VERSION_NOT_FOUND'
@@ -19,6 +20,10 @@ export type ErrorCode
     | 'PROJECT_ALREADY_IMPORTED'
     | 'INVALID_PROJECT'
     | 'PACKAGE_MANAGER_NOT_FOUND'
+    | 'PYTHON_TOOL_FAILED'
+    | 'PYTHON_PROJECT_AMBIGUOUS'
+    | 'PYTHON_VERSION_UNSUPPORTED'
+    | 'PYTHON_DEPS_FAILED'
 
 export interface SerializedError {
   code: ErrorCode

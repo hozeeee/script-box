@@ -1,8 +1,9 @@
 import type { LanguageRunner } from './types'
 import { AppError } from '@shared/errors'
 import { nodeRunner } from './node'
+import { pythonRunner } from './python'
 
-const runners: LanguageRunner[] = [nodeRunner]
+const runners: LanguageRunner[] = [pythonRunner, nodeRunner]
 
 export function resolveLanguageRunner(script: string): LanguageRunner {
   const runner = runners.find(item => item.supports(script))

@@ -1,8 +1,10 @@
-export const SCRIPT_EXTENSIONS = ['.js', '.mjs', '.cjs', '.ts', '.mts', '.cts'] as const
+export const NODE_SCRIPT_EXTENSIONS = ['.js', '.mjs', '.cjs', '.ts', '.mts', '.cts'] as const
+export const PYTHON_SCRIPT_EXTENSIONS = ['.py'] as const
+export const SCRIPT_EXTENSIONS = [...NODE_SCRIPT_EXTENSIONS, ...PYTHON_SCRIPT_EXTENSIONS] as const
 
 export type ScriptExtension = (typeof SCRIPT_EXTENSIONS)[number]
 
-export type ScriptLanguage = 'javascript' | 'typescript'
+export type ScriptLanguage = 'javascript' | 'typescript' | 'python'
 
 export interface ScriptFile {
   /** File name, or a POSIX path relative to the project root in project spaces (e.g. `src/index.ts`) */

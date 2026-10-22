@@ -19,6 +19,7 @@ export interface ProxySettings {
 export interface NetworkSettings {
   nodeMirror: string
   npmRegistry: string
+  pypiIndex: string
   proxy: ProxySettings
   /** Extra env vars injected into npm and scripts, e.g. ELECTRON_MIRROR */
   binaryMirrors: EnvVar[]
@@ -27,6 +28,7 @@ export interface NetworkSettings {
 export interface RunSettings {
   historyLimit: number
   defaultNodeVersion: string | null
+  defaultPythonVersion: string | null
 }
 
 export interface UpdateSettings {

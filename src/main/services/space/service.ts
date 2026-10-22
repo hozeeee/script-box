@@ -1,4 +1,4 @@
-import type { Space, SpaceInput } from '@shared/types'
+import type { Space, SpaceInput, SpaceRuntime } from '@shared/types'
 import { randomUUID } from 'node:crypto'
 import { readdir, rm, writeFile } from 'node:fs/promises'
 import { isAbsolute, join, relative } from 'node:path'
@@ -6,13 +6,21 @@ import { AppError } from '@shared/errors'
 import { historyPaths, ID_PATTERN, paths, spacePaths } from '../../paths'
 import { ensureDir, exists, readJson, writeJson } from '../../utils/fs'
 import { normalizeProjectPath, projectExists } from './project'
-import { SPACE_NPMRC, WELCOME_SCRIPT, WELCOME_SCRIPT_NAME } from './templates'
+import { PYTHON_PYPROJECT_TEMPLATE, PYTHON_WELCOME_SCRIPT, PYTHON_WELCOME_SCRIPT_NAME, SPACE_NPMRC, WELCOME_SCRIPT, WELCOME_SCRIPT_NAME } from './templates'
 
 /** Paths are compared case-insensitively where the file system usually is */
 function samePath(a: string, b: string): boolean {
   return process.platform === 'win32' || process.platform === 'darwin'
     ? a.toLowerCase() === b.toLowerCase()
     : a === b
+}
+
+/** Migrate a pre-Python space (nodeVersion) to the new runtime model. */
+export function migrateSpace(space: Space): Space {
+  if (space.runtime)
+    return space
+  const nodeVersion = (space as Space & { nodeVersion?: string | null }).nodeVersion ?? null
+  return { ...space, runtime: { kind: 'node', version: nodeVersion } }
 }
 
 class SpaceService {
@@ -47,33 +55,33 @@ class SpaceService {
   }
 
   async get(id: string): Promise<Space> {
-    const space = ID_PATTERN.test(id) ? await readJson<Space | null>(spacePaths.meta(id), null) : null
-    if (!space)
+    const raw = ID_PATTERN.test(id) ? await readJson<Space | null>(spacePaths.meta(id), null) : null
+    if (!raw)
       throw new AppError('SPACE_NOT_FOUND', undefined, { id })
-    return space
+    return migrateSpace(raw)
   }
 
   async create(input: SpaceInput): Promise<Space> {
     const id = randomUUID()
     const now = Date.now()
+    const runtime: SpaceRuntime = input.runtime ?? { kind: 'node', version: null }
     const space: Space = {
       id,
       name: input.name.trim(),
       description: input.description?.trim() ?? '',
-      nodeVersion: input.nodeVersion,
+      runtime,
+      pythonManager: input.pythonManager,
+      pythonVersionSource: input.pythonVersionSource,
       createdAt: now,
       updatedAt: now,
       scripts: {},
     }
-    await ensureDir(spacePaths.scripts(id))
-    await writeJson(spacePaths.pkg(id), {
-      name: `space-${id.slice(0, 8)}`,
-      version: '0.0.0',
-      private: true,
-      dependencies: {},
-    })
-    await writeFile(join(spacePaths.root(id), '.npmrc'), SPACE_NPMRC, 'utf8')
-    await writeFile(join(spacePaths.scripts(id), WELCOME_SCRIPT_NAME), WELCOME_SCRIPT, 'utf8')
+    if (runtime.kind === 'python') {
+      await this.scaffoldPython(id, space)
+    }
+    else {
+      await this.scaffoldNode(id)
+    }
     await writeJson(spacePaths.meta(id), space)
     return space
   }
@@ -86,11 +94,14 @@ class SpaceService {
     const projectPath = await this.claimProjectPath(input.projectPath)
     const id = randomUUID()
     const now = Date.now()
+    const runtime: SpaceRuntime = input.runtime ?? { kind: 'node', version: null }
     const space: Space = {
       id,
       name: input.name.trim(),
       description: input.description?.trim() ?? '',
-      nodeVersion: input.nodeVersion,
+      runtime,
+      pythonManager: input.pythonManager,
+      pythonVersionSource: input.pythonVersionSource,
       createdAt: now,
       updatedAt: now,
       scripts: {},
@@ -110,8 +121,8 @@ class SpaceService {
         space.name = input.name.trim()
       if (input.description !== undefined)
         space.description = input.description.trim()
-      if (input.nodeVersion !== undefined)
-        space.nodeVersion = input.nodeVersion
+      if (input.runtime !== undefined)
+        space.runtime = { ...space.runtime, version: input.runtime.version }
       if (projectPath)
         space.projectPath = projectPath
     })
@@ -174,6 +185,27 @@ class SpaceService {
     if (taken)
       throw new AppError('PROJECT_ALREADY_IMPORTED', undefined, { path: projectPath, name: taken.name })
     return projectPath
+  }
+
+  private async scaffoldNode(id: string): Promise<void> {
+    await ensureDir(spacePaths.scripts(id))
+    await writeJson(spacePaths.pkg(id), {
+      name: `space-${id.slice(0, 8)}`,
+      version: '0.0.0',
+      private: true,
+      dependencies: {},
+    })
+    await writeFile(join(spacePaths.root(id), '.npmrc'), SPACE_NPMRC, 'utf8')
+    await writeFile(join(spacePaths.scripts(id), WELCOME_SCRIPT_NAME), WELCOME_SCRIPT, 'utf8')
+  }
+
+  private async scaffoldPython(id: string, space: Space): Promise<void> {
+    await ensureDir(spacePaths.scripts(id))
+    const pyVersion = space.runtime.version?.replace(/^\d+\./, m => m) || '3.13'
+    const minorMatch = pyVersion.match(/(\d+\.\d+)/)
+    const minor = minorMatch ? minorMatch[1]! : '3.13'
+    await writeFile(join(spacePaths.scripts(id), 'pyproject.toml'), PYTHON_PYPROJECT_TEMPLATE(`space-${id.slice(0, 8)}`, minor), 'utf8')
+    await writeFile(join(spacePaths.scripts(id), PYTHON_WELCOME_SCRIPT_NAME), PYTHON_WELCOME_SCRIPT, 'utf8')
   }
 }
 

@@ -1,9 +1,10 @@
-import type { ProjectEntry } from '@shared/types'
+import type { ProjectEntry, RuntimeKind } from '@shared/types'
 import { lstat, readdir, realpath } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, sep } from 'node:path'
 import { AppError } from '@shared/errors'
 import { projectEntryPath } from '../../paths'
-import { isDeclarationFile, isValidScriptPath, languageOf } from './naming'
+import { isDeclarationFile, isScriptFileForKind, isValidScriptPath, languageOf } from './naming'
+import { IGNORED_DIRS } from './walk'
 
 function assertInside(root: string, path: string, name: string): void {
   const rel = relative(root, path)
@@ -29,16 +30,18 @@ export async function resolveProjectDirectory(root: string, directory: string): 
   return path
 }
 
-/** 只加载当前层：不过滤文件类型或 .gitignore，不预先扫描依赖目录 */
-export async function listProjectEntries(root: string, directory = ''): Promise<ProjectEntry[]> {
+/** 只加载当前层：不预先扫描依赖目录；过滤已知环境/缓存目录 */
+export async function listProjectEntries(root: string, directory = '', kind: RuntimeKind = 'node'): Promise<ProjectEntry[]> {
   const path = await resolveProjectDirectory(root, directory)
   const entries = await readdir(path, { withFileTypes: true })
   const result: ProjectEntry[] = []
   for (const entry of entries) {
     const name = directory ? `${directory}/${entry.name}` : entry.name
-    const kind = entry.isDirectory() ? 'directory' : entry.isSymbolicLink() ? 'symlink' : 'file'
-    const file: ProjectEntry = { name, kind }
-    if (entry.isFile() && isValidScriptPath(name) && !isDeclarationFile(name)) {
+    if (entry.isDirectory() && IGNORED_DIRS.has(entry.name))
+      continue
+    const entryKind = entry.isDirectory() ? 'directory' : entry.isSymbolicLink() ? 'symlink' : 'file'
+    const file: ProjectEntry = { name, kind: entryKind }
+    if (entry.isFile() && isValidScriptPath(name) && !isDeclarationFile(name) && isScriptFileForKind(name, kind)) {
       const stat = await lstat(join(path, entry.name)).catch(() => null)
       if (!stat)
         continue

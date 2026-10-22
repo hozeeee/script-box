@@ -1,4 +1,4 @@
-import type { InstalledRuntime, ProjectInfo, Space, SpaceInput } from '@shared/types'
+import type { InstalledRuntime, ProjectInfo, RuntimeKind, Space, SpaceInput } from '@shared/types'
 import type { ReactNode } from 'react'
 import { FolderOpenOutlined } from '@ant-design/icons'
 import { invoke } from '@renderer/api'
@@ -23,6 +23,8 @@ interface Props {
   space?: Space
   /** Import this project instead of creating an empty space */
   project?: PickedProject
+  /** Runtime language for new spaces / import */
+  runtimeKind?: RuntimeKind
   onClose: () => void
   onSaved?: (space: Space) => void
 }
@@ -48,7 +50,7 @@ function matchRuntime(hint: string | null, installed: InstalledRuntime[]): strin
   return candidates[0]?.version ?? null
 }
 
-export default function SpaceFormModal({ open, space, project, onClose, onSaved }: Props): ReactNode {
+export default function SpaceFormModal({ open, space, project, runtimeKind: kindProp, onClose, onSaved }: Props): ReactNode {
   const { t } = useTranslation()
   const { message } = App.useApp()
   const [form] = Form.useForm<SpaceInput>()
@@ -56,23 +58,37 @@ export default function SpaceFormModal({ open, space, project, onClose, onSaved 
   const [picking, setPicking] = useState(false)
   const { create, importProject, update } = useSpacesStore()
   const installed = useRuntimesStore(state => state.installed)
-  const defaultVersion = useSettingsStore(state => state.settings?.run.defaultNodeVersion)
-  const fallbackVersion = defaultVersion ?? installed[0]?.version ?? null
+  const settings = useSettingsStore(state => state.settings)
   const isProject = !!project || !!space?.projectPath
+
+  const kind: RuntimeKind = space ? space.runtime.kind : kindProp ?? 'node'
+  const isPython = kind === 'python'
+  const nodeInstalled = installed.filter(i => i.kind === 'node')
+  const pythonInstalled = installed.filter(i => i.kind === 'python')
+  const defaultNodeVersion = settings?.run.defaultNodeVersion ?? nodeInstalled[0]?.version ?? null
+  const defaultPythonVersion = settings?.run.defaultPythonVersion ?? pythonInstalled[0]?.version ?? null
+  const fallbackVersion = isPython ? defaultPythonVersion : defaultNodeVersion
 
   // The modal body mounts lazily (and is destroyed on close), so values set from an effect
   // can land before the Form is connected and get lost. Seed them via initialValues instead,
   // which are applied every time the Form mounts.
   const initialValues: SpaceInput = space
-    ? { name: space.name, description: space.description, nodeVersion: space.nodeVersion, projectPath: space.projectPath }
+    ? { name: space.name, description: space.description, runtime: space.runtime, projectPath: space.projectPath }
     : project
       ? {
           name: (project.info.packageName ?? baseName(project.path)).slice(0, 64),
           description: '',
-          nodeVersion: matchRuntime(project.info.nodeVersionHint, installed) ?? fallbackVersion,
+          runtime: {
+            kind,
+            version: isPython
+              ? matchRuntime(project.info.pythonVersionHint ?? null, pythonInstalled) ?? fallbackVersion
+              : matchRuntime(project.info.nodeVersionHint, nodeInstalled) ?? fallbackVersion,
+          },
           projectPath: project.path,
+          pythonManager: isPython ? project.info.pythonManager : undefined,
+          pythonVersionSource: isPython ? project.info.pythonVersionSource : undefined,
         }
-      : { name: '', description: '', nodeVersion: fallbackVersion }
+      : { name: '', description: '', runtime: { kind, version: fallbackVersion } }
 
   /** Re-link a project space after its directory was moved */
   const pickDirectory = async (): Promise<void> => {
@@ -148,13 +164,17 @@ export default function SpaceFormModal({ open, space, project, onClose, onSaved 
           <Input.TextArea autoSize={{ minRows: 2, maxRows: 4 }} maxLength={500} />
         </Form.Item>
         <Form.Item
-          name="nodeVersion"
-          label={t('spaces.nodeVersion')}
-          extra={project?.info.nodeVersionHint
-            ? t('spaces.nodeVersionDetected', { version: project.info.nodeVersionHint })
-            : t('spaces.nodeVersionHint')}
+          name={['runtime', 'version']}
+          label={isPython ? t('spaces.pythonVersion') : t('spaces.nodeVersion')}
+          extra={isPython
+            ? (project?.info.pythonVersionHint
+                ? t('spaces.pythonVersionDetected', { version: project.info.pythonVersionHint })
+                : t('spaces.pythonVersionHint'))
+            : (project?.info.nodeVersionHint
+                ? t('spaces.nodeVersionDetected', { version: project.info.nodeVersionHint })
+                : t('spaces.nodeVersionHint'))}
         >
-          <NodeVersionSelect />
+          <NodeVersionSelect kind={kind} />
         </Form.Item>
       </Form>
     </Modal>

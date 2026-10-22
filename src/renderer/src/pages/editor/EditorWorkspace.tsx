@@ -14,7 +14,7 @@ import { Empty, Splitter } from 'antd'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router'
-import BottomPanel, { DEPS_TAB } from './BottomPanel'
+import BottomPanel, { DEPS_TAB, HISTORY_TAB } from './BottomPanel'
 import ScriptEditorPane from './ScriptEditorPane'
 import { useScriptActions } from './useScriptActions'
 import { useScripts } from './useScripts'
@@ -26,15 +26,15 @@ export default function EditorWorkspace({ space }: { space: Space }): ReactNode 
   const isProject = !!space.projectPath
   const { scripts, loaded, error, reload } = useScripts(space.id)
   const [params, setParams] = useSearchParams()
-  const [bottomTab, setBottomTab] = useState(DEPS_TAB)
+  const [bottomTab, setBottomTab] = useState(space.runtime.kind === 'node' ? DEPS_TAB : HISTORY_TAB)
   const [nameDialog, setNameDialog] = useState<NameDialog>({ open: false, mode: 'create' })
   const [configuring, setConfiguring] = useState<string | null>(null)
   const [projectInfo, setProjectInfo] = useState<{ spaceId: string, info: ProjectInfo } | null>(null)
   const selected = params.get('script')
   // 工程树按需加载，忽略目录中的脚本也能打开，不依赖后台源码扫描列表。
   const selectedFile = useMemo(() => scripts.find(file => file.name === selected)
-    ?? (isProject && selected && /\.[cm]?[jt]s$/i.test(selected) && !/\.d\.[cm]?ts$/i.test(selected)
-      ? { name: selected, language: /\.[cm]?ts$/i.test(selected) ? 'typescript' as const : 'javascript' as const, size: 0, mtime: 0 }
+    ?? (isProject && selected && /\.(?:[cm]?[jt]s|py)$/i.test(selected) && !/\.d\.[cm]?ts$/i.test(selected)
+      ? { name: selected, language: (/\.py$/i.test(selected) ? 'python' : /\.[cm]?ts$/i.test(selected) ? 'typescript' : 'javascript') as 'python' | 'typescript' | 'javascript', size: 0, mtime: 0 }
       : undefined), [scripts, isProject, selected])
   const running = useRunsStore((state) => {
     const runId = selected ? state.latest[runKey(space.id, selected)] : undefined
@@ -119,7 +119,7 @@ export default function EditorWorkspace({ space }: { space: Space }): ReactNode 
                     />
                   </Splitter.Panel>
                   <Splitter.Panel defaultSize="35%" min={100}>
-                    {info && (
+                    {info && space.runtime.kind === 'node' && (
                       <NpmScriptsPanel
                         spaceId={space.id}
                         info={info}
@@ -162,7 +162,7 @@ export default function EditorWorkspace({ space }: { space: Space }): ReactNode 
                 : <Empty style={{ marginTop: 120 }} description={t(isProject ? 'editor.noScriptProject' : 'editor.noScript')} />}
             </Splitter.Panel>
             <Splitter.Panel defaultSize="35%" min={120}>
-              <BottomPanel spaceId={space.id} activeKey={bottomTab} onChange={setBottomTab} />
+              <BottomPanel spaceId={space.id} runtimeKind={space.runtime.kind} activeKey={bottomTab} onChange={setBottomTab} />
             </Splitter.Panel>
           </Splitter>
         </Splitter.Panel>
@@ -172,6 +172,7 @@ export default function EditorWorkspace({ space }: { space: Space }): ReactNode 
         open={nameDialog.open}
         title={nameDialog.mode === 'rename' ? t('common.rename') : t('script.new')}
         allowPath={isProject}
+        runtimeKind={space.runtime.kind}
         initialName={nameDialog.mode === 'rename' ? nameDialog.name : nameDialog.dir && `${nameDialog.dir}/`}
         // Keep the mode while the close animation plays so the title doesn't flip to "new"
         onClose={() => setNameDialog(prev => ({ ...prev, open: false }))}

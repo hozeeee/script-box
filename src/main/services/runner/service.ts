@@ -68,6 +68,18 @@ class RunnerService extends EventEmitter<{ output: [RunOutputEvent], exit: [RunR
     const prepared = isNpmScriptKey(script)
       ? await this.prepareNpmScript(space, script, args, network)
       : await this.prepareFile(space, script, args)
+
+    // Run preflight (e.g. Python venv + deps sync) before spawning
+    let preflightOutput = ''
+    if (prepared.preflight) {
+      const overrides = await prepared.preflight((data) => {
+        preflightOutput += data
+      })
+      if (overrides?.command)
+        prepared.command = overrides.command
+      if (overrides?.binDir)
+        prepared.binDir = overrides.binDir
+    }
     const scriptEnv = Object.fromEntries(runConfig.env.filter(item => item.key.trim()).map(item => [item.key.trim(), item.value]))
     const env = buildProcessEnv(
       prepared.binDir,
@@ -83,7 +95,8 @@ class RunnerService extends EventEmitter<{ output: [RunOutputEvent], exit: [RunR
       spaceId,
       script,
       args,
-      nodeVersion: prepared.runtimeVersion,
+      runtimeKind: prepared.runtimeKind ?? 'node',
+      runtimeVersion: prepared.runtimeVersion,
       startedAt: Date.now(),
       endedAt: null,
       exitCode: null,
@@ -100,6 +113,8 @@ class RunnerService extends EventEmitter<{ output: [RunOutputEvent], exit: [RunR
     const run: ActiveRun = { record, pty, log, stopRequested: false }
     this.runs.set(record.id, run)
 
+    if (preflightOutput)
+      this.output(run, gray(preflightOutput.trimEnd()))
     this.output(run, gray(`> ${prepared.shown}${args.length ? ` ${args.join(' ')}` : ''}  (${prepared.runtimeVersion})`))
     pty.onData(data => this.output(run, data))
     pty.onExit(({ exitCode }) => void this.finish(run, exitCode))
@@ -120,7 +135,7 @@ class RunnerService extends EventEmitter<{ output: [RunOutputEvent], exit: [RunR
     if (!space.projectPath)
       throw new AppError('UNSUPPORTED_SCRIPT', undefined, { name: key })
     const { cwd, name, packageManager } = await resolveProjectScript(space.projectPath, key)
-    const runtime = await runtimeService.resolve(space.nodeVersion)
+    const runtime = await runtimeService.resolve(space.runtime?.version ?? space.nodeVersion ?? null)
     const launcher = await resolvePackageManager(packageManager, runtime)
     return {
       command: launcher.command,

@@ -1,5 +1,5 @@
 import type { NetworkSettings } from '@shared/types'
-import { DEFAULT_SETTINGS } from '@shared/defaults'
+import { DEFAULT_SETTINGS, PYPI_INDEX_CN, PYPI_INDEX_OFFICIAL } from '@shared/defaults'
 import { describe, expect, it } from 'vitest'
 import { buildNetworkEnv, resolveProxy, toElectronProxyConfig } from './env'
 import { deepMerge } from './merge'
@@ -28,6 +28,9 @@ describe('buildNetworkEnv', () => {
     ))
     expect(env).toEqual({
       npm_config_registry: 'https://registry.npmmirror.com/',
+      PIP_INDEX_URL: 'https://pypi.org/simple',
+      UV_INDEX_URL: 'https://pypi.org/simple',
+      PDM_PYPI_URL: 'https://pypi.org/simple',
       HTTP_PROXY: 'http://p:1',
       http_proxy: 'http://p:1',
       npm_config_proxy: 'http://p:1',
@@ -42,7 +45,21 @@ describe('buildNetworkEnv', () => {
   })
 
   it('omits proxy vars when the proxy is disabled', () => {
-    expect(Object.keys(buildNetworkEnv(network()))).toEqual(['npm_config_registry'])
+    expect(Object.keys(buildNetworkEnv(network()))).toEqual(['npm_config_registry', 'PIP_INDEX_URL', 'UV_INDEX_URL', 'PDM_PYPI_URL'])
+  })
+
+  it('uses custom PyPI index for all Python tools', () => {
+    const env = buildNetworkEnv(network({ pypiIndex: PYPI_INDEX_CN }))
+    expect(env.PIP_INDEX_URL).toBe(PYPI_INDEX_CN)
+    expect(env.UV_INDEX_URL).toBe(PYPI_INDEX_CN)
+    expect(env.PDM_PYPI_URL).toBe(PYPI_INDEX_CN)
+  })
+
+  it('omits PyPI vars when pypiIndex is empty', () => {
+    const env = buildNetworkEnv(network({ pypiIndex: '' }))
+    expect(env).not.toHaveProperty('PIP_INDEX_URL')
+    expect(env).not.toHaveProperty('UV_INDEX_URL')
+    expect(env).not.toHaveProperty('PDM_PYPI_URL')
   })
 })
 
@@ -75,5 +92,18 @@ describe('deepMerge', () => {
 
   it('ignores undefined values', () => {
     expect(deepMerge({ a: 1, b: { c: 2 } }, { a: undefined, b: { c: undefined } })).toEqual({ a: 1, b: { c: 2 } })
+  })
+})
+
+describe('defaults', () => {
+  it('has correct PyPI defaults', () => {
+    expect(PYPI_INDEX_OFFICIAL).toBe('https://pypi.org/simple')
+    expect(PYPI_INDEX_CN).toBe('https://pypi.tuna.tsinghua.edu.cn/simple')
+    expect(DEFAULT_SETTINGS.network.pypiIndex).toBe(PYPI_INDEX_OFFICIAL)
+  })
+
+  it('has defaultPythonVersion in run settings', () => {
+    expect(DEFAULT_SETTINGS.run.defaultPythonVersion).toBeNull()
+    expect(DEFAULT_SETTINGS.run.defaultNodeVersion).toBeNull()
   })
 })

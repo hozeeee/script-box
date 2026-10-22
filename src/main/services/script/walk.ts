@@ -19,6 +19,14 @@ export const IGNORED_DIRS = new Set([
   '.scriptbox',
   '.yarn',
   '.pnpm-store',
+  '.venv',
+  'venv',
+  '__pycache__',
+  '.pytest_cache',
+  '.mypy_cache',
+  '.ruff_cache',
+  '.tox',
+  '.nox',
 ])
 
 export const MAX_WALK_DEPTH = 12

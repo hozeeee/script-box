@@ -14,11 +14,13 @@ export default function FirstRunGuide(): ReactNode {
   const { message } = App.useApp()
   const settings = useSettingsStore(state => state.settings)
   const update = useSettingsStore(state => state.update)
-  const { installed, remote, remoteLoading, progress, loadRemote, install, cancel, dismiss } = useRuntimesStore()
+  const { installed, remoteLoading, progress, loadRemote, install, cancel, dismiss, nodeRemote } = useRuntimesStore()
   const [dismissed, setDismissed] = useState(false)
   const [version, setVersion] = useState<string>()
 
-  const open = !!settings && installed.length === 0 && !dismissed
+  const nodeInstalled = installed.filter(i => i.kind === 'node')
+  const remote = nodeRemote()
+  const open = !!settings && nodeInstalled.length === 0 && !dismissed
   const ltsVersions = useMemo(() => remote.filter(item => item.lts).slice(0, 20), [remote])
   const selected = version ?? ltsVersions[0]?.version
   const current = selected ? progress[selected] : undefined
@@ -26,7 +28,7 @@ export default function FirstRunGuide(): ReactNode {
 
   useEffect(() => {
     if (open)
-      loadRemote().catch(error => message.error(formatError(t, error)))
+      loadRemote('node').catch(error => message.error(formatError(t, error)))
   }, [open, loadRemote, message, t])
 
   if (!settings)
@@ -35,7 +37,7 @@ export default function FirstRunGuide(): ReactNode {
   const toggleMirror = async (checked: boolean): Promise<void> => {
     await update(mirrorPreset(checked, settings.network))
     setVersion(undefined)
-    await loadRemote().catch(error => message.error(formatError(t, error)))
+    await loadRemote('node').catch(error => message.error(formatError(t, error)))
   }
 
   const start = async (): Promise<void> => {
@@ -43,7 +45,7 @@ export default function FirstRunGuide(): ReactNode {
       return
     try {
       dismiss(selected)
-      await install(selected)
+      await install('node', selected)
     }
     catch (error) {
       message.error(formatError(t, error))
@@ -82,7 +84,7 @@ export default function FirstRunGuide(): ReactNode {
         {current && (
           <DownloadProgress
             progress={current}
-            onCancel={() => void cancel(current.version)}
+            onCancel={() => void cancel('node', current.version)}
             onDismiss={() => dismiss(current.version)}
           />
         )}

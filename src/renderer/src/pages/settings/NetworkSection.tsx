@@ -2,7 +2,7 @@ import type { NetworkSettings } from '@shared/types'
 import type { ReactNode } from 'react'
 import EnvEditor from '@renderer/components/common/EnvEditor'
 import { mirrorPreset } from '@renderer/utils/presets'
-import { NODE_MIRROR_CN, NODE_MIRROR_OFFICIAL, NPM_REGISTRY_CN, NPM_REGISTRY_OFFICIAL } from '@shared/defaults'
+import { NODE_MIRROR_CN, NODE_MIRROR_OFFICIAL, NPM_REGISTRY_CN, NPM_REGISTRY_OFFICIAL, PYPI_INDEX_CN, PYPI_INDEX_OFFICIAL } from '@shared/defaults'
 import { AutoComplete, Button, Card, Divider, Flex, Form, Input, Switch } from 'antd'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -57,6 +57,9 @@ export default function NetworkSection(): ReactNode {
         </Form.Item>
         <Form.Item label={t('settings.npmRegistry')} name="npmRegistry" rules={[{ required: true }, urlRule]}>
           <AutoComplete options={[{ value: NPM_REGISTRY_OFFICIAL }, { value: NPM_REGISTRY_CN }]} />
+        </Form.Item>
+        <Form.Item label={t('settings.pypiIndex')} name="pypiIndex" rules={[{ required: true }, urlRule]}>
+          <AutoComplete options={[{ value: PYPI_INDEX_OFFICIAL }, { value: PYPI_INDEX_CN }]} />
         </Form.Item>
 
         <Divider titlePlacement="start" plain>{t('settings.proxy')}</Divider>
