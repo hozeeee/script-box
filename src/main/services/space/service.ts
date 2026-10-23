@@ -17,10 +17,10 @@ function samePath(a: string, b: string): boolean {
 
 /** Migrate a pre-Python space (nodeVersion) to the new runtime model. */
 export function migrateSpace(space: Space): Space {
-  if (space.runtime)
+  if (space.runtime?.kind)
     return space
-  const nodeVersion = (space as Space & { nodeVersion?: string | null }).nodeVersion ?? null
-  return { ...space, runtime: { kind: 'node', version: nodeVersion } }
+  const version = space.runtime?.version ?? space.nodeVersion ?? null
+  return { ...space, runtime: { kind: 'node', version } }
 }
 
 class SpaceService {
@@ -38,7 +38,7 @@ class SpaceService {
     const order = await readJson<string[]>(paths.spaceOrder, [])
     const positions = new Map(order.map((id, index) => [id, index]))
     const found = await Promise.all(
-      spaces.filter((space): space is Space => space !== null).map(space => this.annotate(space)),
+      spaces.filter((space): space is Space => space !== null).map(space => this.annotate(migrateSpace(space))),
     )
     return found
       .sort((a, b) => {
