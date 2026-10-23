@@ -6,6 +6,7 @@ export function registerUpdaterIpc(): void {
   handle('updater:check', () => updaterService.check())
   handle('updater:download', () => updaterService.download())
   handle('updater:install', () => updaterService.install())
+  handle('updater:reveal', () => updaterService.reveal())
 
   updaterService.on('status', status => broadcast('updater:status', status))
 }

@@ -97,6 +97,7 @@ export interface IpcInvokeMap {
   'updater:check': () => UpdateStatus
   'updater:download': () => void
   'updater:install': () => void
+  'updater:reveal': () => void
 }
 
 /** Fire-and-forget channels (renderer -> main, ipcRenderer.send) */

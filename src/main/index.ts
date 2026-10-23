@@ -16,6 +16,7 @@ async function bootstrap(): Promise<void> {
   await historyStore.recoverStale().catch(error => console.error('[main] recover history failed:', error))
 
   registerIpc()
+  await updaterService.initialize().catch(error => console.error('[main] restore update failed:', error))
   createMainWindow()
 
   if (settings.update.autoCheck)

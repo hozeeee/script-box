@@ -45,6 +45,9 @@ export const paths = {
   get temp() {
     return join(root(), 'tmp')
   },
+  get updates() {
+    return join(root(), 'updates')
+  },
 }
 
 export const ID_PATTERN = /^[\w-]{1,64}$/

@@ -121,6 +121,19 @@
     "download": "下载更新",
     "restart": "重启并安装",
     "check": "检查更新",
+    "reveal": "打开下载位置",
+    "package": "已下载版本 {{version}}，文件位置：",
+    "manual": {
+      "guide": "查看安装指引",
+      "downloaded": "版本 {{version}} 已下载，需手动安装",
+      "mac-unsigned": "当前 Mac 应用没有可用于自动更新的 Developer ID 签名，下载后请手动安装。",
+      "mac-signature": "Mac 应用签名校验未通过，无法自动安装；已下载文件可用于手动安装。",
+      "extract": "点击“打开下载位置”，双击 ZIP 文件解压，找到 Script Box.app。",
+      "replace": "用 ⌘Q 完全退出 Script Box（只关闭窗口不算退出），把解压后的应用拖到 {{path}} 所在目录并替换旧应用。若无写入权限，请按 Finder 提示授权。",
+      "open": "重新打开替换后的应用，在“关于”中确认版本号。若提示“已损坏”或被安全策略阻止，可在确认来源后执行下方命令，再尝试打开。",
+      "safety": "仅在确认安装包来自官方 GitHub Release 且信任该文件时，在终端中执行。命令只解除此应用的下载隔离属性，会绕过针对该应用的部分安全检查，不会关闭全局 Gatekeeper。",
+      "limit": "此命令不能修复无效签名，也不能让原生自动更新通过签名校验。若仍无法打开，请从官方 Release 重新下载安装包；若安装到了其他位置，请先修改命令中的应用路径。"
+    },
     "states": {
       "idle": "尚未检查",
       "unsupported": "开发模式下不支持自动更新",
@@ -128,11 +141,14 @@
       "available": "发现新版本 {{version}}",
       "not-available": "已是最新版本",
       "downloading": "正在下载…",
-      "downloaded": "新版本 {{version}} 已就绪",
-      "error": "检查更新失败"
+      "preparing": "正在校验并准备安装 {{version}}…",
+      "downloaded": "新版本 {{version}} 已下载完成",
+      "error": "更新操作失败"
     },
     "errors": {
-      "no-release": "GitHub 上暂无已发布的正式版本"
+      "no-release": "GitHub 上暂无已发布的正式版本",
+      "mac-signature": "Mac 签名校验失败，请下载后按指引手动安装",
+      "cache-missing": "已下载文件不存在、已损坏或已过期，请检查更新并重新下载"
     }
   },
   "editor": {

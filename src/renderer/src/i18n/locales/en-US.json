@@ -121,6 +121,19 @@
     "download": "Download",
     "restart": "Restart and install",
     "check": "Check for updates",
+    "reveal": "Show downloaded file",
+    "package": "Downloaded version {{version}}, file location:",
+    "manual": {
+      "guide": "Installation instructions",
+      "downloaded": "Version {{version}} downloaded; manual installation required",
+      "mac-unsigned": "This Mac app has no Developer ID signature usable for automatic updates. Install the download manually.",
+      "mac-signature": "Mac code signature validation failed. Automatic installation is unavailable; the downloaded file can be installed manually.",
+      "extract": "Click Show downloaded file, double-click the ZIP to extract it, and find Script Box.app.",
+      "replace": "Quit Script Box completely with ⌘Q (closing the window is not enough). Move the extracted app into the directory containing {{path}} and replace the old app. Authorize in Finder if necessary.",
+      "open": "Open the replaced app and verify its version in About. If macOS reports it as damaged or blocks it, verify the source before running the command below and trying again.",
+      "safety": "Run this in Terminal only if the package is from the official GitHub Release and you trust it. It removes this app’s download quarantine, bypassing some app-specific security checks, without disabling Gatekeeper globally.",
+      "limit": "This command does not repair invalid signatures or enable native automatic updates. If the app still cannot open, download a new installer from the official Release. Adjust the app path first if you installed it elsewhere."
+    },
     "states": {
       "idle": "Not checked yet",
       "unsupported": "Auto update is not available in development",
@@ -128,11 +141,14 @@
       "available": "Version {{version}} is available",
       "not-available": "You are up to date",
       "downloading": "Downloading…",
-      "downloaded": "Version {{version}} is ready to install",
-      "error": "Update check failed"
+      "preparing": "Validating and preparing version {{version}}…",
+      "downloaded": "Version {{version}} has been downloaded",
+      "error": "Update operation failed"
     },
     "errors": {
-      "no-release": "no published release on GitHub yet"
+      "no-release": "no published release on GitHub yet",
+      "mac-signature": "Mac signature validation failed; download and follow the manual installation instructions",
+      "cache-missing": "The downloaded file is missing, damaged or outdated. Check for updates and download again"
     }
   },
   "editor": {
