@@ -1,5 +1,6 @@
 import type { InstalledRuntime, RemotePythonVersion, RuntimeInstallProgress } from '@shared/types'
 import { EventEmitter } from 'node:events'
+import { dirname } from 'node:path'
 import { AppError } from '@shared/errors'
 import { paths } from '../../paths'
 import { exists } from '../../utils/fs'
@@ -9,7 +10,8 @@ interface UvPythonEntry {
   key?: string
   version?: string
   implementation?: string
-  path?: string
+  variant?: string
+  path?: string | null
 }
 
 export interface ResolvedPythonRuntime {
@@ -34,6 +36,11 @@ function executableBin(path: string): string {
   return path.slice(0, path.lastIndexOf(separator))
 }
 
+/** Installation root of a managed interpreter: `<dir>/bin/python3.x` on POSIX, `<dir>/python.exe` on Windows */
+function installDir(python: string): string {
+  return process.platform === 'win32' ? dirname(python) : dirname(dirname(python))
+}
+
 class PythonRuntimeService extends EventEmitter<{ progress: [RuntimeInstallProgress] }> {
   private installs = new Map<string, { controller: AbortController, progress: RuntimeInstallProgress }>()
 
@@ -53,15 +60,21 @@ class PythonRuntimeService extends EventEmitter<{ progress: [RuntimeInstallProgr
   }
 
   async listInstalled(): Promise<InstalledRuntime[]> {
-    const { stdout } = await uvService.run(['python', 'list', '--only-installed', '--output-format', 'json'])
+    // Nothing can be installed before the first install; avoids bootstrapping uv for Node-only users
+    if (!(await exists(paths.pythonRuntimes)))
+      return []
+    // Without only-managed uv also reports system interpreters found on PATH
+    const { stdout } = await uvService.run(['python', 'list', '--only-installed', '--python-preference', 'only-managed', '--output-format', 'json'])
     const seen = new Set<string>()
     const installed: InstalledRuntime[] = []
     for (const entry of parseEntries(stdout)) {
       const version = plain(entry.version ?? entry.key ?? '')
       if (!/^\d+\.\d+\.\d+$/.test(version) || seen.has(version) || !entry.path)
         continue
+      if (entry.variant && entry.variant !== 'default')
+        continue
       seen.add(version)
-      installed.push({ kind: 'python', version, dir: entry.path })
+      installed.push({ kind: 'python', version, dir: installDir(entry.path) })
     }
     return installed.sort((a, b) => b.version.localeCompare(a.version, undefined, { numeric: true }))
   }
@@ -105,7 +118,9 @@ class PythonRuntimeService extends EventEmitter<{ progress: [RuntimeInstallProgr
       progress.phase = 'install'
       progress.detail = `Python ${version}`
       this.emit('progress', { ...progress })
-      await uvService.run(['python', 'install', version], {
+      // Keep the interpreter private to Script Box: no shims in ~/.local/bin, no Windows registry entries
+      const flags = process.platform === 'win32' ? ['--no-bin', '--no-registry'] : ['--no-bin']
+      await uvService.run(['python', 'install', ...flags, version], {
         signal: controller.signal,
         onData: (detail) => {
           progress.detail = detail.trim().split(/\r?\n/).pop()

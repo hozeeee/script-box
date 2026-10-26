@@ -99,9 +99,11 @@
     "goInstall": "No version installed yet, download one",
     "kind": "Type",
     "phase": {
+      "prepare": "Preparing",
       "download": "Downloading",
       "verify": "Verifying",
       "extract": "Extracting",
+      "install": "Installing",
       "done": "Done",
       "error": "Failed",
       "canceled": "Canceled"

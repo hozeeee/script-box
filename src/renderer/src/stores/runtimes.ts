@@ -24,12 +24,17 @@ export const useRuntimesStore = create<RuntimesState>((set, get) => ({
   remote: [],
   remoteLoading: false,
   progress: {},
+  /** Without `kind` reloads every runtime kind; with `kind` only replaces that kind */
   async loadInstalled(kind) {
     const [installed, installing] = await Promise.all([
       invoke('runtime:list-installed', kind),
       invoke('runtime:installing', kind),
     ])
-    set({ installed, progress: { ...get().progress, ...Object.fromEntries(installing.map(item => [item.version, item])) } })
+    const others = kind ? get().installed.filter(item => item.kind !== kind) : []
+    set({
+      installed: [...others, ...installed],
+      progress: { ...get().progress, ...Object.fromEntries(installing.map(item => [item.version, item])) },
+    })
   },
   async loadRemote(kind, force) {
     set({ remoteLoading: true })
@@ -59,7 +64,7 @@ on('runtime:progress', (progress) => {
   if (progress.phase === 'done' || progress.phase === 'canceled') {
     store.dismiss(progress.version)
     if (progress.phase === 'done')
-      void store.loadInstalled()
+      void store.loadInstalled(progress.kind)
     return
   }
   useRuntimesStore.setState({ progress: { ...store.progress, [progress.version]: progress } })

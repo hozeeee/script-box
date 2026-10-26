@@ -9,15 +9,24 @@ export function registerRuntimeIpc(): void {
       return pythonRuntimeService.listRemote()
     return runtimeService.listRemote(force)
   })
-  handle('runtime:list-installed', (kind?: RuntimeKind) => {
+  handle('runtime:list-installed', async (kind?: RuntimeKind) => {
     if (kind === 'python')
       return pythonRuntimeService.listInstalled()
-    return runtimeService.listInstalled()
+    if (kind === 'node')
+      return runtimeService.listInstalled()
+    // A broken Python toolchain must not hide installed Node.js runtimes
+    const [node, python] = await Promise.all([
+      runtimeService.listInstalled(),
+      pythonRuntimeService.listInstalled().catch(() => []),
+    ])
+    return [...node, ...python]
   })
   handle('runtime:installing', (kind?: RuntimeKind) => {
     if (kind === 'python')
       return pythonRuntimeService.installing()
-    return runtimeService.installing()
+    if (kind === 'node')
+      return runtimeService.installing()
+    return [...runtimeService.installing(), ...pythonRuntimeService.installing()]
   })
   handle('runtime:install', (kind: RuntimeKind, version: string) => {
     if (kind === 'python')
