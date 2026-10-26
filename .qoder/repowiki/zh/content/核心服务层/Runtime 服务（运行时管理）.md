@@ -26,6 +26,9 @@
 - 扩展 IPC 层以支持按运行时类型分发操作
 - 更新渲染进程 UI 以支持运行时类型切换和统一状态管理
 - 增强空间配置以支持不同运行时的版本选择
+- **新增**：增强 IPC 层对损坏 Python 工具链的处理能力，确保 Node.js 运行时不受影响
+- **新增**：改进并行执行机制，聚合 Node.js 和 Python 运行时的安装进度
+- **新增**：添加错误处理机制，防止 Python 工具链故障导致整体功能失效
 
 ## 目录
 1. [简介](#简介)
@@ -41,6 +44,8 @@
 
 ## 简介
 本技术文档聚焦于 Runtime 服务，围绕统一的运行时管理机制进行系统化说明。系统现已支持 Node.js 和 Python 两种运行时，通过 RuntimeKind 类型和 SpaceRuntime 接口实现统一管理。内容涵盖远程版本发现、下载进度跟踪、文件解压与安装验证、平台适配逻辑、镜像源配置、安全校验（SHA256）、环境变量注入、多版本并行管理策略、缓存机制以及版本切换流程。同时提供面向扩展的示例路径，帮助开发者添加新的运行时支持与自定义下载器、解压器。
+
+**最新更新**：增强了 IPC 层的健壮性，能够处理损坏的 Python 工具链而不影响 Node.js 运行时的正常使用，并改进了并行执行机制以聚合两种运行时的安装进度。
 
 ## 项目结构
 Runtime 服务位于主进程侧，负责与远端镜像交互、本地文件操作、版本管理与事件上报；渲染进程通过 IPC 调用并展示进度与状态。现在支持 Node.js 和 Python 两种运行时的统一管理。
@@ -79,35 +84,35 @@ RR --> RT_STORE
 ```
 
 **图表来源**
-- [src/main/ipc/runtime.ts:6-40](file://src/main/ipc/runtime.ts#L6-L40)
+- [src/main/ipc/runtime.ts:6-49](file://src/main/ipc/runtime.ts#L6-L49)
 - [src/main/services/runtime/service.ts:37-154](file://src/main/services/runtime/service.ts#L37-L154)
-- [src/main/services/python/runtime.ts:37-129](file://src/main/services/python/runtime.ts#L37-L129)
+- [src/main/services/python/runtime.ts:44-143](file://src/main/services/python/runtime.ts#L44-L143)
 - [src/main/services/runtime/platform.ts:1-83](file://src/main/services/runtime/platform.ts#L1-L83)
 - [src/main/services/runtime/extract.ts:1-37](file://src/main/services/runtime/extract.ts#L1-L37)
 - [src/main/services/runtime/shasums.ts:1-26](file://src/main/services/runtime/shasums.ts#L1-L26)
 - [src/main/services/network/index.ts:1-81](file://src/main/services/network/index.ts#L1-L81)
-- [src/renderer/src/stores/runtimes.ts:1-67](file://src/renderer/src/stores/runtimes.ts#L1-L67)
+- [src/renderer/src/stores/runtimes.ts:1-72](file://src/renderer/src/stores/runtimes.ts#L1-L72)
 - [src/renderer/src/components/runtime/DownloadProgress.tsx:1-42](file://src/renderer/src/components/runtime/DownloadProgress.tsx#L1-L42)
 - [src/renderer/src/pages/runtimes/RuntimesPage.tsx:1-31](file://src/renderer/src/pages/runtimes/RuntimesPage.tsx#L1-L31)
 - [src/renderer/src/pages/runtimes/InstalledRuntimes.tsx:1-103](file://src/renderer/src/pages/runtimes/InstalledRuntimes.tsx#L1-L103)
 - [src/renderer/src/pages/runtimes/RemoteRuntimes.tsx:1-131](file://src/renderer/src/pages/runtimes/RemoteRuntimes.tsx#L1-L131)
 
 **章节来源**
-- [src/main/ipc/runtime.ts:1-41](file://src/main/ipc/runtime.ts#L1-L41)
+- [src/main/ipc/runtime.ts:1-50](file://src/main/ipc/runtime.ts#L1-L50)
 - [src/main/services/runtime/service.ts:1-155](file://src/main/services/runtime/service.ts#L1-L155)
-- [src/main/services/python/runtime.ts:1-130](file://src/main/services/python/runtime.ts#L1-L130)
+- [src/main/services/python/runtime.ts:1-145](file://src/main/services/python/runtime.ts#L1-L145)
 - [src/main/services/runtime/platform.ts:1-83](file://src/main/services/runtime/platform.ts#L1-L83)
 - [src/main/services/runtime/extract.ts:1-37](file://src/main/services/runtime/extract.ts#L1-L37)
 - [src/main/services/runtime/shasums.ts:1-26](file://src/main/services/runtime/shasums.ts#L1-L26)
 - [src/main/services/network/index.ts:1-81](file://src/main/services/network/index.ts#L1-L81)
-- [src/renderer/src/stores/runtimes.ts:1-67](file://src/renderer/src/stores/runtimes.ts#L1-L67)
+- [src/renderer/src/stores/runtimes.ts:1-72](file://src/renderer/src/stores/runtimes.ts#L1-L72)
 - [src/renderer/src/components/runtime/DownloadProgress.tsx:1-42](file://src/renderer/src/components/runtime/DownloadProgress.tsx#L1-L42)
 - [src/renderer/src/pages/runtimes/RuntimesPage.tsx:1-31](file://src/renderer/src/pages/runtimes/RuntimesPage.tsx#L1-L31)
 - [src/renderer/src/pages/runtimes/InstalledRuntimes.tsx:1-103](file://src/renderer/src/pages/runtimes/InstalledRuntimes.tsx#L1-L103)
 - [src/renderer/src/pages/runtimes/RemoteRuntimes.tsx:1-131](file://src/renderer/src/pages/runtimes/RemoteRuntimes.tsx#L1-L131)
 
 ## 核心组件
-- **统一 IPC 路由**：根据 RuntimeKind 将请求分发到对应的运行时服务，支持 node 和 python 两种类型。
+- **统一 IPC 路由**：根据 RuntimeKind 将请求分发到对应的运行时服务，支持 node 和 python 两种类型，具备增强的错误处理能力。
 - **RuntimeService**：Node.js 版本列表获取、已安装版本枚举、版本解析、安装/取消/删除、进度事件上报、远程缓存。
 - **PythonRuntimeService**：Python 版本管理，基于 uv 工具链，支持版本安装、卸载和环境解析。
 - **Platform**：平台与架构映射、归档文件名生成、二进制与 npm CLI 路径计算、版本格式校验与排序。
@@ -118,15 +123,15 @@ RR --> RT_STORE
 - **Renderer Store/UI**：订阅安装进度、展示下载进度条、触发安装/取消/删除等操作，支持运行时类型切换。
 
 **章节来源**
-- [src/main/ipc/runtime.ts:6-40](file://src/main/ipc/runtime.ts#L6-L40)
+- [src/main/ipc/runtime.ts:6-49](file://src/main/ipc/runtime.ts#L6-L49)
 - [src/main/services/runtime/service.ts:37-154](file://src/main/services/runtime/service.ts#L37-L154)
-- [src/main/services/python/runtime.ts:37-129](file://src/main/services/python/runtime.ts#L37-L129)
+- [src/main/services/python/runtime.ts:44-143](file://src/main/services/python/runtime.ts#L44-L143)
 - [src/main/services/runtime/platform.ts:1-83](file://src/main/services/runtime/platform.ts#L1-L83)
 - [src/main/services/runtime/extract.ts:1-37](file://src/main/services/runtime/extract.ts#L1-L37)
 - [src/main/services/runtime/shasums.ts:1-26](file://src/main/services/runtime/shasums.ts#L1-L26)
 - [src/main/services/network/index.ts:1-81](file://src/main/services/network/index.ts#L1-L81)
 - [src/main/services/runtime/env.ts:1-28](file://src/main/services/runtime/env.ts#L1-L28)
-- [src/renderer/src/stores/runtimes.ts:1-67](file://src/renderer/src/stores/runtimes.ts#L1-L67)
+- [src/renderer/src/stores/runtimes.ts:1-72](file://src/renderer/src/stores/runtimes.ts#L1-L72)
 - [src/renderer/src/components/runtime/DownloadProgress.tsx:1-42](file://src/renderer/src/components/runtime/DownloadProgress.tsx#L1-L42)
 
 ## 架构总览
@@ -160,20 +165,21 @@ Store->>UI : 更新进度状态
 ```
 
 **图表来源**
-- [src/main/ipc/runtime.ts:22-36](file://src/main/ipc/runtime.ts#L22-L36)
+- [src/main/ipc/runtime.ts:22-35](file://src/main/ipc/runtime.ts#L22-L35)
 - [src/main/services/runtime/service.ts:114-151](file://src/main/services/runtime/service.ts#L114-L151)
-- [src/main/services/python/runtime.ts:103-125](file://src/main/services/python/runtime.ts#L103-L125)
+- [src/main/services/python/runtime.ts:116-140](file://src/main/services/python/runtime.ts#L116-L140)
 - [src/main/services/network/index.ts:34-64](file://src/main/services/network/index.ts#L34-L64)
 
 ## 详细组件分析
 
-### 统一 IPC 路由：运行时类型分发
+### 统一 IPC 路由：运行时类型分发与错误处理
 - **运行时类型识别**
   - 通过 RuntimeKind 类型区分 'node' 和 'python' 两种运行时。
   - 所有 IPC 方法都接收 kind 参数，根据类型路由到对应服务。
 - **方法路由**
   - list-remote：根据 kind 调用 pythonRuntimeService.listRemote() 或 runtimeService.listRemote()
-  - list-installed：根据 kind 调用 pythonRuntimeService.listInstalled() 或 runtimeService.listInstalled()
+  - list-installed：**增强** 根据 kind 调用对应服务，若无指定类型则并行获取两种运行时的已安装列表，使用 `.catch(() => [])` 处理 Python 工具链错误
+  - installing：**增强** 聚合 Node.js 和 Python 运行时的安装进度，支持并行执行
   - install/cancel/remove：同样根据 kind 分发到对应服务
 - **进度事件广播**
   - 同时监听两个服务的 progress 事件，统一广播给渲染进程
@@ -183,6 +189,9 @@ flowchart TD
 Start(["IPC 请求"]) --> Check{"kind 类型?"}
 Check --> |node| NodeRoute["调用 RuntimeService"]
 Check --> |python| PythonRoute["调用 PythonRuntimeService"]
+Check --> |none| Parallel["并行获取两种运行时"]
+Parallel --> NodeRoute
+Parallel --> PythonRoute
 NodeRoute --> Execute["执行对应操作"]
 PythonRoute --> Execute
 Execute --> Progress["emit('progress')"]
@@ -190,11 +199,13 @@ Progress --> Broadcast["broadcast('runtime:progress')"]
 Broadcast --> End(["完成"])
 ```
 
+**更新**：增强了错误处理机制，当 Python 工具链损坏时，Node.js 运行时仍然可以正常工作。
+
 **图表来源**
-- [src/main/ipc/runtime.ts:6-40](file://src/main/ipc/runtime.ts#L6-L40)
+- [src/main/ipc/runtime.ts:6-49](file://src/main/ipc/runtime.ts#L6-L49)
 
 **章节来源**
-- [src/main/ipc/runtime.ts:1-41](file://src/main/ipc/runtime.ts#L1-L41)
+- [src/main/ipc/runtime.ts:1-50](file://src/main/ipc/runtime.ts#L1-L50)
 
 ### RuntimeKind 类型定义与 SpaceRuntime 接口
 - **RuntimeKind 类型**
@@ -265,10 +276,10 @@ Done --> End
 ```
 
 **图表来源**
-- [src/main/services/python/runtime.ts:73-125](file://src/main/services/python/runtime.ts#L73-L125)
+- [src/main/services/python/runtime.ts:86-140](file://src/main/services/python/runtime.ts#L86-L140)
 
 **章节来源**
-- [src/main/services/python/runtime.ts:1-130](file://src/main/services/python/runtime.ts#L1-L130)
+- [src/main/services/python/runtime.ts:1-145](file://src/main/services/python/runtime.ts#L1-L145)
 
 ### RuntimeService：Node.js 版本管理与安装编排
 - **远程版本发现**
@@ -482,12 +493,12 @@ Store->>UI : 更新进度状态
 ```
 
 **图表来源**
-- [src/renderer/src/stores/runtimes.ts:27-66](file://src/renderer/src/stores/runtimes.ts#L27-L66)
+- [src/renderer/src/stores/runtimes.ts:27-71](file://src/renderer/src/stores/runtimes.ts#L27-L71)
 - [src/renderer/src/components/runtime/DownloadProgress.tsx:14-40](file://src/renderer/src/components/runtime/DownloadProgress.tsx#L14-L40)
-- [src/main/ipc/runtime.ts:22-39](file://src/main/ipc/runtime.ts#L22-L39)
+- [src/main/ipc/runtime.ts:22-49](file://src/main/ipc/runtime.ts#L22-L49)
 
 **章节来源**
-- [src/renderer/src/stores/runtimes.ts:1-67](file://src/renderer/src/stores/runtimes.ts#L1-L67)
+- [src/renderer/src/stores/runtimes.ts:1-72](file://src/renderer/src/stores/runtimes.ts#L1-L72)
 - [src/renderer/src/components/runtime/DownloadProgress.tsx:1-42](file://src/renderer/src/components/runtime/DownloadProgress.tsx#L1-L42)
 - [src/renderer/src/pages/runtimes/RuntimesPage.tsx:1-31](file://src/renderer/src/pages/runtimes/RuntimesPage.tsx#L1-L31)
 - [src/renderer/src/pages/runtimes/InstalledRuntimes.tsx:1-103](file://src/renderer/src/pages/runtimes/InstalledRuntimes.tsx#L1-L103)
@@ -530,7 +541,7 @@ RR["RemoteRuntimes.tsx"] --> STORE
 ```
 
 **图表来源**
-- [src/main/ipc/runtime.ts:1-41](file://src/main/ipc/runtime.ts#L1-L41)
+- [src/main/ipc/runtime.ts:1-50](file://src/main/ipc/runtime.ts#L1-L50)
 - [src/main/services/runtime/service.ts:1-22](file://src/main/services/runtime/service.ts#L1-L22)
 - [src/main/services/python/runtime.ts:1-6](file://src/main/services/python/runtime.ts#L1-L6)
 - [src/main/services/network/index.ts:1-27](file://src/main/services/network/index.ts#L1-L27)
@@ -544,7 +555,7 @@ RR["RemoteRuntimes.tsx"] --> STORE
 - [src/renderer/src/pages/runtimes/RemoteRuntimes.tsx:1-8](file://src/renderer/src/pages/runtimes/RemoteRuntimes.tsx#L1-L8)
 
 **章节来源**
-- [src/main/ipc/runtime.ts:1-41](file://src/main/ipc/runtime.ts#L1-L41)
+- [src/main/ipc/runtime.ts:1-50](file://src/main/ipc/runtime.ts#L1-L50)
 - [src/main/services/runtime/service.ts:1-22](file://src/main/services/runtime/service.ts#L1-L22)
 - [src/main/services/python/runtime.ts:1-6](file://src/main/services/python/runtime.ts#L1-L6)
 - [src/main/services/network/index.ts:1-27](file://src/main/services/network/index.ts#L1-L27)
@@ -570,6 +581,9 @@ RR["RemoteRuntimes.tsx"] --> STORE
   - 下载与 SHA256 计算均采用流式处理，降低内存占用。
 - **多运行时并发**
   - Node.js 和 Python 运行时可以独立并行安装，互不影响。
+- **增强并行执行**
+  - **新增**：IPC 层使用 `Promise.all` 并行获取两种运行时的安装状态，提升响应速度。
+  - **新增**：错误隔离机制，单个运行时的故障不会影响其他运行时的正常功能。
 
 ## 故障排查指南
 - **常见错误与定位**
@@ -578,21 +592,26 @@ RR["RemoteRuntimes.tsx"] --> STORE
   - 未安装版本：resolve 时若版本不存在或正在安装会抛出错误，确认版本是否已安装或安装是否仍在进行中。
   - 重复安装：同一版本同时触发安装会抛错，需等待上一次完成或取消后重试。
   - 运行时类型错误：确保 IPC 调用时传递正确的 RuntimeKind 参数。
+  - **新增**：Python 工具链损坏：如果 Python 工具链损坏，Node.js 运行时仍然可以正常工作，系统会自动降级处理。
 - **调试建议**
   - 观察渲染进程进度事件，关注 phase 与 error 字段。
   - 检查临时归档是否被正确清理。
   - 确认镜像源与 index.json 结构是否符合预期。
   - 验证 Python 运行时是否正确配置 uv 工具链。
+  - **新增**：检查 IPC 层的错误处理日志，确认并行执行是否正常。
 
 **章节来源**
 - [src/main/services/runtime/service.ts:74-108](file://src/main/services/runtime/service.ts#L74-L108)
 - [src/main/services/runtime/service.ts:114-151](file://src/main/services/runtime/service.ts#L114-L151)
 - [src/main/services/network/index.ts:18-27](file://src/main/services/network/index.ts#L18-L27)
 - [src/main/services/network/index.ts:34-64](file://src/main/services/network/index.ts#L34-L64)
-- [src/main/services/python/runtime.ts:73-125](file://src/main/services/python/runtime.ts#L73-L125)
+- [src/main/services/python/runtime.ts:86-140](file://src/main/services/python/runtime.ts#L86-L140)
+- [src/main/ipc/runtime.ts:17-23](file://src/main/ipc/runtime.ts#L17-L23)
 
 ## 结论
 统一的 Runtime 服务通过清晰的职责划分与稳健的错误处理，实现了跨平台的 Node.js 和 Python 运行时管理。其远程缓存、流式下载、SHA256 校验与原子解压共同保证了安全性与可靠性；多版本并行与进度事件则提供了良好的用户体验。结合渲染进程的状态管理与 UI 反馈，整体方案具备可扩展性与可维护性。新的统一抽象层使得未来可以轻松添加更多运行时类型。
+
+**最新改进**：增强了系统的健壮性，通过改进的 IPC 层错误处理和并行执行机制，确保单个运行时的故障不会影响整体功能，提升了用户体验和系统稳定性。
 
 ## 附录：扩展指南
 
@@ -604,13 +623,13 @@ RR["RemoteRuntimes.tsx"] --> STORE
   - 更新渲染进程以支持新的运行时类型。
 - **关键路径参考**
   - RuntimeKind 类型定义：[runtime.ts:1](file://src/shared/types/runtime.ts#L1)
-  - IPC 路由分发：[ipc/runtime.ts:7-36](file://src/main/ipc/runtime.ts#L7-L36)
-  - Python 运行时实现参考：[python/runtime.ts:37-129](file://src/main/services/python/runtime.ts#L37-L129)
+  - IPC 路由分发：[ipc/runtime.ts:7-45](file://src/main/ipc/runtime.ts#L7-L45)
+  - Python 运行时实现参考：[python/runtime.ts:44-143](file://src/main/services/python/runtime.ts#L44-L143)
 
 **章节来源**
 - [src/shared/types/runtime.ts:1](file://src/shared/types/runtime.ts#L1)
-- [src/main/ipc/runtime.ts:7-36](file://src/main/ipc/runtime.ts#L7-L36)
-- [src/main/services/python/runtime.ts:37-129](file://src/main/services/python/runtime.ts#L37-L129)
+- [src/main/ipc/runtime.ts:7-45](file://src/main/ipc/runtime.ts#L7-L45)
+- [src/main/services/python/runtime.ts:44-143](file://src/main/services/python/runtime.ts#L44-L143)
 
 ### 添加新的 Node.js 版本支持
 - **步骤概览**

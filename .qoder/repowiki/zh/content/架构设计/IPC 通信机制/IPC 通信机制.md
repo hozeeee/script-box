@@ -1,3 +1,5 @@
+基于我对代码的分析，我现在可以更新 IPC 通信机制文档。主要变更是在 `runtime:list-installed` 处理器中引入了并行执行和错误处理机制，确保即使 Python 工具链损坏，Node.js 运行时仍然可以被列出。
+
 # IPC 通信机制
 
 <cite>
@@ -16,7 +18,16 @@
 - [src/main/ipc/run.ts](file://src/main/ipc/run.ts)
 - [src/main/ipc/updater.ts](file://src/main/ipc/updater.ts)
 - [src/shared/errors.ts](file://src/shared/errors.ts)
+- [src/main/services/python/runtime.ts](file://src/main/services/python/runtime.ts)
+- [src/main/services/runtime/service.ts](file://src/main/services/runtime/service.ts)
 </cite>
+
+## 更新摘要
+**已进行的变更**   
+- 更新了运行时通道部分，详细说明 Promise.all() 并行执行和错误处理机制
+- 新增了关于 Python 工具链容错处理的说明
+- 增强了故障排查指南中的运行时相关错误处理
+- 更新了架构图以反映新的并行处理模式
 
 ## 目录
 1. [简介](#简介)
@@ -145,9 +156,9 @@ end
 
 ### 类型安全的 IPC 设计
 - 共享类型定义
-  - IpcInvokeMap：定义所有“请求-响应”型通道及其参数/返回类型。
-  - IpcSendMap：定义“单向发送”型通道（无响应）。
-  - IpcEventMap：定义“主进程推送到渲染进程”的事件通道。
+  - IpcInvokeMap：定义所有"请求-响应"型通道及其参数/返回类型。
+  - IpcSendMap：定义"单向发送"型通道（无响应）。
+  - IpcEventMap：定义"主进程推送到渲染进程"的事件通道。
   - ScriptBoxBridge：约束 preload 暴露的能力，确保类型安全。
 - 通道注册机制
   - main/ipc/index.ts 集中注册各模块的 registerXxxIpc，保证入口清晰。
@@ -216,9 +227,32 @@ E --> F["返回 { ok:false, error }"]
 #### 运行时通道（runtime）
 - 功能：列出远程/已安装版本、安装/取消/移除、进度推送。
 - 特性：通过 runtimeService 管理生命周期，progress 事件广播至渲染端。
+- **更新**：增强了容错处理能力，使用 Promise.all() 并行执行 Node.js 和 Python 运行时发现，确保单个运行时的失败不会影响其他运行时的发现。
+
+**更新** 运行时通道现在实现了健壮的并行执行机制：
+
+```mermaid
+flowchart TD
+Start(["runtime:list-installed 调用"]) --> CheckKind{"检查运行时类型"}
+CheckKind --> |Python| PythonList["pythonRuntimeService.listInstalled()"]
+CheckKind --> |Node| NodeList["runtimeService.listInstalled()"]
+CheckKind --> |Both| ParallelExec["Promise.all([node, python])"]
+ParallelExec --> NodeSuccess["Node.js 运行时发现"]
+ParallelExec --> PythonCatch["Python 运行时发现.catch(() => [])"]
+NodeSuccess --> MergeResults["合并结果 [...node, ...python]"]
+PythonCatch --> MergeResults
+MergeResults --> Return["返回合并后的运行时列表"]
+```
+
+**图表来源**
+- [src/main/ipc/runtime.ts:12-23](file://src/main/ipc/runtime.ts#L12-L23)
+
+这种设计确保了即使 Python 工具链损坏或不可用，Node.js 运行时仍然可以被正常发现和列出，提升了系统的健壮性。
 
 章节来源
-- [src/main/ipc/runtime.ts:1-14](file://src/main/ipc/runtime.ts#L1-L14)
+- [src/main/ipc/runtime.ts:1-50](file://src/main/ipc/runtime.ts#L1-L50)
+- [src/main/services/python/runtime.ts:62-80](file://src/main/services/python/runtime.ts#L62-L80)
+- [src/main/services/runtime/service.ts:59-72](file://src/main/services/runtime/service.ts#L59-L72)
 
 #### 空间通道（space）
 - 功能：CRUD 空间、打开目录。
@@ -319,6 +353,9 @@ M_HLP --> SH_ERR
   - deps:types/node-types 等静态类型列表，可结合本地缓存减少重复计算。
 - 事件广播优化
   - broadcast 会遍历所有窗口，建议仅在必要场景广播，或在渲染端按需订阅。
+- **更新** 并行执行优化
+  - 运行时发现使用 Promise.all() 并行执行 Node.js 和 Python 运行时发现，提升整体性能。
+  - 单个运行时的失败不会影响其他运行时的发现，提高了系统的容错性。
 
 [本节为通用指导，不直接分析具体文件]
 
@@ -334,15 +371,20 @@ M_HLP --> SH_ERR
 - 快速修复
   - 若出现 UNKNOWN 错误码，检查业务处理器是否抛出非 AppError 的异常。
   - 若 Space 删除失败，检查是否存在运行中任务或依赖安装任务。
+- **更新** 运行时相关故障排查
+  - Python 工具链损坏：系统会自动降级为只列出 Node.js 运行时，不影响基本功能。
+  - 运行时发现失败：检查 Promise.all() 中的 .catch(() => []) 是否正确处理了异常。
+  - 并行执行问题：确认 Node.js 和 Python 运行时发现互不影响。
 
 章节来源
 - [src/main/ipc/helpers.ts:17-28](file://src/main/ipc/helpers.ts#L17-L28)
 - [src/main/ipc/app.ts:20-24](file://src/main/ipc/app.ts#L20-L24)
 - [src/main/ipc/space.ts:15-19](file://src/main/ipc/space.ts#L15-L19)
 - [src/shared/errors.ts:25-40](file://src/shared/errors.ts#L25-L40)
+- [src/main/ipc/runtime.ts:17-22](file://src/main/ipc/runtime.ts#L17-L22)
 
 ## 结论
-Script Box 的 IPC 体系以共享类型为核心，通过 preload 桥与主进程辅助函数实现了类型安全、错误可序列化、事件可广播的统一通信模型。该设计具备良好的可扩展性与可维护性，适合在多模块、多窗口的 Electron 应用中稳定运行。
+Script Box 的 IPC 体系以共享类型为核心，通过 preload 桥与主进程辅助函数实现了类型安全、错误可序列化、事件可广播的统一通信模型。该设计具备良好的可扩展性与可维护性，适合在多模块、多窗口的 Electron 应用中稳定运行。**更新** 最新的增强包括对 Python 工具链损坏的优雅处理，通过并行执行和错误隔离确保了系统的健壮性。
 
 [本节为总结性内容，不直接分析具体文件]
 
@@ -367,5 +409,6 @@ Script Box 的 IPC 体系以共享类型为核心，通过 preload 桥与主进�
 - 优先使用 IpcResult 包装错误，避免跨进程丢失堆栈。
 - 对长耗时任务使用事件推送（如 progress/task/output/exit），避免阻塞调用链。
 - 对敏感操作（如打开外部链接）进行白名单校验。
+- **更新** 对于可能失败的并行操作，使用 .catch(() => []) 确保单个失败不影响整体流程。
 
 [本节为通用指导，不直接分析具体文件]

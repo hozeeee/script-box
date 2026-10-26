@@ -13,7 +13,17 @@
 - [src/main/services/runner/languages/python.ts](file://src/main/services/runner/languages/python.ts)
 - [src/main/services/runner/languages/node.ts](file://src/main/services/runner/languages/node.ts)
 - [src/main/services/runner/languages/index.ts](file://src/main/services/runner/languages/index.ts)
+- [src/shared/types/runtime.ts](file://src/shared/types/runtime.ts)
+- [src/main/ipc/runtime.ts](file://src/main/ipc/runtime.ts)
 </cite>
+
+## 更新摘要
+**已进行的变更**   
+- 更新了 Python 运行时服务章节，反映新增的 `installDir()` 辅助函数
+- 增强了 `listInstalled()` 方法的描述，包括平台特定检查和变体过滤
+- 更新了安装标志和隔离性改进的说明
+- 修正了 --only-managed 偏好设置的使用说明
+- 改进了边缘情况处理的文档
 
 ## 目录
 1. [简介](#简介)
@@ -27,7 +37,7 @@
 9. [结论](#结论)
 
 ## 简介
-本项目是一个基于 Electron 的脚本运行器，默认以 Node.js 为核心运行时。同时，项目通过独立的 Python 服务层为 `.py` 脚本提供“免安装、可管理版本、按空间隔离依赖”的运行体验。Python 支持由以下能力组成：
+本项目是一个基于 Electron 的脚本运行器，默认以 Node.js 为核心运行时。同时，项目通过独立的 Python 服务层为 `.py` 脚本提供"免安装、可管理版本、按空间隔离依赖"的运行体验。Python 支持由以下能力组成：
 - 使用 uv 作为底层工具链，自动下载并校验二进制；
 - 管理 Python 解释器版本（受支持的次要版本）；
 - 为每个运行空间创建虚拟环境；
@@ -68,7 +78,7 @@ PythonProject --> PythonIndex
 - [src/main/services/runner/languages/index.ts:1-15](file://src/main/services/runner/languages/index.ts#L1-L15)
 - [src/main/services/runner/languages/python.ts:1-22](file://src/main/services/runner/languages/python.ts#L1-L22)
 - [src/main/services/python/index.ts:1-6](file://src/main/services/python/index.ts#L1-L6)
-- [src/main/services/python/runtime.ts:1-130](file://src/main/services/python/runtime.ts#L1-L130)
+- [src/main/services/python/runtime.ts:1-145](file://src/main/services/python/runtime.ts#L1-L145)
 - [src/main/services/python/sync.ts:1-226](file://src/main/services/python/sync.ts#L1-L226)
 - [src/main/services/python/project.ts:1-103](file://src/main/services/python/project.ts#L1-L103)
 - [src/main/services/python/uv.ts:1-154](file://src/main/services/python/uv.ts#L1-L154)
@@ -86,13 +96,13 @@ PythonProject --> PythonIndex
 
 **章节来源**
 - [src/main/services/runner/languages/python.ts:1-22](file://src/main/services/runner/languages/python.ts#L1-L22)
-- [src/main/services/python/runtime.ts:1-130](file://src/main/services/python/runtime.ts#L1-L130)
+- [src/main/services/python/runtime.ts:1-145](file://src/main/services/python/runtime.ts#L1-L145)
 - [src/main/services/python/project.ts:1-103](file://src/main/services/python/project.ts#L1-L103)
 - [src/main/services/python/sync.ts:1-226](file://src/main/services/python/sync.ts#L1-L226)
 - [src/main/services/python/uv.ts:1-154](file://src/main/services/python/uv.ts#L1-L154)
 
 ## 架构总览
-Python 支持在“语言运行器”与“Python 服务层”之间解耦：语言运行器只关心如何把脚本变成命令；Python 服务层负责解释器、虚拟环境和依赖管理。
+Python 支持在"语言运行器"与"Python 服务层"之间解耦：语言运行器只关心如何把脚本变成命令；Python 服务层负责解释器、虚拟环境和依赖管理。
 
 ```mermaid
 sequenceDiagram
@@ -117,7 +127,7 @@ PythonRunner-->>UI : "返回可执行命令与预检结果"
 - [src/main/services/runner/languages/index.ts:1-15](file://src/main/services/runner/languages/index.ts#L1-L15)
 - [src/main/services/runner/languages/python.ts:1-22](file://src/main/services/runner/languages/python.ts#L1-L22)
 - [src/main/services/python/sync.ts:167-225](file://src/main/services/python/sync.ts#L167-L225)
-- [src/main/services/python/runtime.ts:93-101](file://src/main/services/python/runtime.ts#L93-L101)
+- [src/main/services/python/runtime.ts:106-114](file://src/main/services/python/runtime.ts#L106-L114)
 - [src/main/services/python/uv.ts:73-109](file://src/main/services/python/uv.ts#L73-L109)
 
 ## 详细组件分析
@@ -161,28 +171,45 @@ LanguageRunner <|-- PythonRunner
 - [src/main/services/runner/languages/python.ts:1-22](file://src/main/services/runner/languages/python.ts#L1-L22)
 
 ### Python 运行时服务
-Python 运行时服务封装了 Python 解释器的生命周期管理：
-- 列出远程可用版本，仅保留受支持的次要版本；
-- 列出已安装的 Python 版本；
-- 安装、取消、卸载指定版本；
-- 解析指定版本对应的解释器路径和 bin 目录；
-- 通过事件上报安装进度。
+Python 运行时服务封装了 Python 解释器的生命周期管理，经过重大改进后具备更强的健壮性和平台兼容性：
+
+**新增功能**
+- **`installDir()` 辅助函数**：跨平台地计算 Python 解释器的安装根目录，正确处理 Windows 和 POSIX 系统的路径差异
+- **增强的 `listInstalled()` 方法**：添加了平台特定的检查逻辑，改进的变体过滤机制，以及更严格的验证规则
+- **改进的安装标志**：使用 `--no-bin` 和 `--no-registry` 标志提供更好的隔离性，防止污染用户系统
+- **优化的查询策略**：使用 `--python-preference only-managed` 替代 `--only-installed`，避免误报系统解释器
 
 ```mermaid
 flowchart TD
 Start(["调用 resolve(version)"]) --> CheckVersion{"version 是否为空?"}
 CheckVersion --> |是| ThrowNoVersion["抛出 NO_PYTHON_VERSION"]
-CheckVersion --> |否| FindPython["uv python find --only-managed version"]
+CheckVersion --> |否| FindPython["uv python find --python-preference only-managed version"]
 FindPython --> Exists{"解释器存在?"}
 Exists --> |否| ThrowNotInstalled["抛出 RUNTIME_NOT_INSTALLED"]
 Exists --> |是| ReturnResolved["返回 {version, python, bin}"]
 ```
 
 **图表来源**
-- [src/main/services/python/runtime.ts:93-101](file://src/main/services/python/runtime.ts#L93-L101)
+- [src/main/services/python/runtime.ts:106-114](file://src/main/services/python/runtime.ts#L106-L114)
+
+**关键改进点**
+
+1. **平台特定的安装目录处理**：
+   - Windows: `<dir>/python.exe` → `<dir>`
+   - POSIX: `<dir>/bin/python3.x` → `<dir>/bin`
+
+2. **增强的已安装版本列表**：
+   - 使用 `--python-preference only-managed` 确保只列出受管理的解释器
+   - 添加变体过滤，跳过非默认变体的解释器
+   - 改进的版本格式验证和去重逻辑
+
+3. **隔离性改进**：
+   - 安装时使用 `--no-bin` 和 `--no-registry` 标志
+   - 防止创建全局 shims 或注册表项
+   - 确保解释器完全隔离在 Script Box 的管理目录下
 
 **章节来源**
-- [src/main/services/python/runtime.ts:1-130](file://src/main/services/python/runtime.ts#L1-L130)
+- [src/main/services/python/runtime.ts:1-145](file://src/main/services/python/runtime.ts#L1-L145)
 
 ### Python 项目探测
 项目探测用于理解 Python 项目的元信息，包括：
@@ -341,7 +368,7 @@ PythonRuntime --> UvService
 - [src/main/services/runner/languages/index.ts:1-15](file://src/main/services/runner/languages/index.ts#L1-L15)
 - [src/main/services/runner/languages/python.ts:1-22](file://src/main/services/runner/languages/python.ts#L1-L22)
 - [src/main/services/python/sync.ts:1-226](file://src/main/services/python/sync.ts#L1-L226)
-- [src/main/services/python/runtime.ts:1-130](file://src/main/services/python/runtime.ts#L1-L130)
+- [src/main/services/python/runtime.ts:1-145](file://src/main/services/python/runtime.ts#L1-L145)
 - [src/main/services/python/uv.ts:1-154](file://src/main/services/python/uv.ts#L1-L154)
 
 **章节来源**
@@ -371,21 +398,27 @@ PythonRuntime --> UvService
 - 平台不支持：当前 uv 目标映射不包含某些平台架构时会抛出 `PYTHON_VERSION_UNSUPPORTED`。
 - 校验失败：下载 uv 后 SHA-256 不一致会抛出 `CHECKSUM_MISMATCH`，应检查网络完整性或镜像源。
 
+**新增的故障排查要点**：
+- **解释器变体问题**：如果 `listInstalled()` 返回空结果，检查是否存在非默认变体的解释器，这些会被过滤掉
+- **平台路径问题**：Windows 和 POSIX 系统的解释器路径结构不同，`installDir()` 会自动处理这种差异
+- **隔离性问题**：如果解释器出现在系统 PATH 或注册表中，检查安装时是否正确使用了 `--no-bin` 和 `--no-registry` 标志
+
 建议排查步骤：
 1. 确认运行空间已选择 Python 版本；
 2. 确认 uv 已成功安装并可执行；
 3. 查看 Python 解释器是否已安装；
 4. 检查依赖管理器与 lock 文件是否匹配；
 5. 检查网络代理、镜像和缓存目录权限；
-6. 重新触发依赖同步，观察 onData 输出。
+6. 重新触发依赖同步，观察 onData 输出；
+7. 对于平台相关问题，检查操作系统类型和路径分隔符处理。
 
 **章节来源**
 - [src/main/services/python/sync.ts:172-179](file://src/main/services/python/sync.ts#L172-L179)
 - [src/main/services/python/sync.ts:212-224](file://src/main/services/python/sync.ts#L212-L224)
-- [src/main/services/python/runtime.ts:93-101](file://src/main/services/python/runtime.ts#L93-L101)
+- [src/main/services/python/runtime.ts:106-114](file://src/main/services/python/runtime.ts#L106-L114)
 - [src/main/services/python/uv.ts:31-34](file://src/main/services/python/uv.ts#L31-L34)
 - [src/main/services/python/uv.ts:123-128](file://src/main/services/python/uv.ts#L123-L128)
 - [src/main/services/python/uv.ts:99-107](file://src/main/services/python/uv.ts#L99-L107)
 
 ## 结论
-Python 语言支持在本项目中以独立服务层的方式实现，既保持与 Node.js 运行器一致的接口，又充分利用 uv 的现代 Python 生态管理能力。通过虚拟环境、依赖指纹和工具缓存，项目在易用性、可维护性和性能之间取得平衡。对于用户而言，这意味着可以在同一个 Script Box 中无缝运行 Python 脚本，而不必手动管理 Python 解释器或全局依赖。
+Python 语言支持在本项目中以独立服务层的方式实现，既保持与 Node.js 运行器一致的接口，又充分利用 uv 的现代 Python 生态管理能力。经过重大改进后，Python 运行时服务现在具备更强的平台兼容性、更好的隔离性和更健壮的边缘情况处理能力。通过虚拟环境、依赖指纹和工具缓存，项目在易用性、可维护性和性能之间取得平衡。对于用户而言，这意味着可以在同一个 Script Box 中无缝运行 Python 脚本，而不必手动管理 Python 解释器或全局依赖，同时享受更好的稳定性和安全性保障。
