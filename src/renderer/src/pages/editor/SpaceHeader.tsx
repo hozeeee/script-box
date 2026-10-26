@@ -26,7 +26,7 @@ export default function SpaceHeader({ space }: { space: Space }): ReactNode {
       gap={12}
       style={{ padding: '8px 16px', borderBottom: `1px solid ${token.colorBorderSecondary}` }}
     >
-      <Button type="text" size="small" icon={<ArrowLeftOutlined />} onClick={() => navigate('/spaces')} />
+      <Button type="text" size="small" icon={<ArrowLeftOutlined />} onClick={() => navigate(`/spaces/${space.runtime?.kind ?? 'node'}`)} />
       <Typography.Title level={5} style={{ margin: 0, flex: 1 }} ellipsis>
         {space.name}
       </Typography.Title>

@@ -13,7 +13,8 @@
     "version": "Version"
   },
   "nav": {
-    "spaces": "Spaces",
+    "nodeSpaces": "Node.js Spaces",
+    "pythonSpaces": "Python Spaces",
     "runtimes": "Runtimes",
     "settings": "Settings"
   },
@@ -45,7 +46,6 @@
     "PACKAGE_MANAGER_NOT_FOUND": "Package manager {{manager}} not found. Install it on your system first."
   },
   "spaces": {
-    "title": "Spaces",
     "create": "New space",
     "edit": "Edit space",
     "sort": "Reorder",

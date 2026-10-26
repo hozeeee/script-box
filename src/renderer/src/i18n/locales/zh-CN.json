@@ -13,7 +13,8 @@
     "version": "版本"
   },
   "nav": {
-    "spaces": "运行空间",
+    "nodeSpaces": "Node.js 空间",
+    "pythonSpaces": "Python 空间",
     "runtimes": "运行时",
     "settings": "设置"
   },
@@ -45,7 +46,6 @@
     "PACKAGE_MANAGER_NOT_FOUND": "找不到包管理器 {{manager}}，请先在系统中安装它"
   },
   "spaces": {
-    "title": "运行空间",
     "create": "新建空间",
     "edit": "编辑空间",
     "sort": "调整顺序",

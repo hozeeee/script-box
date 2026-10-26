@@ -1,7 +1,8 @@
 import type { MenuProps } from 'antd'
 import type { ReactNode } from 'react'
-import { AppstoreOutlined, NodeIndexOutlined, SettingOutlined } from '@ant-design/icons'
+import { JavaScriptOutlined, NodeIndexOutlined, PythonOutlined, SettingOutlined } from '@ant-design/icons'
 import UpdateNotifier from '@renderer/components/common/UpdateNotifier'
+import { useSpacesStore } from '@renderer/stores/spaces'
 import { Layout, Menu, theme, Typography } from 'antd'
 import { useTranslation } from 'react-i18next'
 import { Outlet, useLocation, useNavigate } from 'react-router'
@@ -14,10 +15,16 @@ export default function MainLayout(): ReactNode {
   const navigate = useNavigate()
   const location = useLocation()
   const { token } = theme.useToken()
-  const selected = `/${location.pathname.split('/')[1] ?? 'spaces'}`
+  const spaces = useSpacesStore(state => state.spaces)
+  const [, section, child] = location.pathname.split('/')
+  // Inside a space editor, highlight the list the space belongs to
+  const selected = section === 'spaces'
+    ? `/spaces/${child === 'python' || child === 'node' ? child : spaces.find(space => space.id === child)?.runtime?.kind ?? 'node'}`
+    : `/${section ?? ''}`
 
   const items: MenuProps['items'] = [
-    { key: '/spaces', icon: <AppstoreOutlined />, label: t('nav.spaces') },
+    { key: '/spaces/node', icon: <JavaScriptOutlined />, label: t('nav.nodeSpaces') },
+    { key: '/spaces/python', icon: <PythonOutlined />, label: t('nav.pythonSpaces') },
     { key: '/runtimes', icon: <NodeIndexOutlined />, label: t('nav.runtimes') },
     { key: '/settings', icon: <SettingOutlined />, label: t('nav.settings') },
   ]

@@ -13,18 +13,17 @@ import { useNavigate } from 'react-router'
 import SpaceCard from './SpaceCard'
 import SpaceFormModal from './SpaceFormModal'
 
-const KINDS: RuntimeKind[] = ['node', 'python']
-
 /** Spaces saved before Python support have no runtime and are Node.js spaces */
 const kindOf = (space: Space): RuntimeKind => space.runtime?.kind ?? 'node'
 
-export default function SpacesPage(): ReactNode {
+/** Lists the spaces of one runtime; Node.js and Python each have their own sidebar entry */
+export default function SpacesPage({ kind }: { kind: RuntimeKind }): ReactNode {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { message, modal } = App.useApp()
   const { spaces, remove, reorder } = useSpacesStore()
-  const [editing, setEditing] = useState<{ open: boolean, space?: Space, project?: PickedProject, runtimeKind?: RuntimeKind }>({ open: false })
-  const [picking, setPicking] = useState<RuntimeKind | null>(null)
+  const [editing, setEditing] = useState<{ open: boolean, space?: Space, project?: PickedProject }>({ open: false })
+  const [picking, setPicking] = useState(false)
   const [sorting, setSorting] = useState(false)
   const [orderedIds, setOrderedIds] = useState<string[]>([])
   const [sortingSaving, setSortingSaving] = useState(false)
@@ -51,20 +50,20 @@ export default function SpacesPage(): ReactNode {
     })
   }
 
-  const pickProject = async (kind: RuntimeKind): Promise<void> => {
-    setPicking(kind)
+  const pickProject = async (): Promise<void> => {
+    setPicking(true)
     try {
       const path = await invoke('app:select-directory')
       if (!path)
         return
       const info = await invoke('space:inspect-project', path, kind)
-      setEditing({ open: true, project: { path, info }, runtimeKind: kind })
+      setEditing({ open: true, project: { path, info } })
     }
     catch (error) {
       message.error(formatError(t, error))
     }
     finally {
-      setPicking(null)
+      setPicking(false)
     }
   }
 
@@ -88,16 +87,9 @@ export default function SpacesPage(): ReactNode {
 
   const spacesById = new Map(spaces.map(space => [space.id, space]))
 
-  /** Cards can only be reordered within their own runtime section */
-  const sameKind = (sourceId: string | undefined, targetId: string): boolean => {
-    const source = sourceId ? spacesById.get(sourceId) : undefined
-    const target = spacesById.get(targetId)
-    return !!source && !!target && kindOf(source) === kindOf(target)
-  }
-
+  // The order covers every space so the main process can persist it as a whole;
+  // only this runtime's spaces are rendered, so drags never cross runtimes
   const moveSpace = (sourceId: string, targetId: string): void => {
-    if (!sameKind(sourceId, targetId))
-      return
     const current = orderRef.current
     const sourceIndex = current.indexOf(sourceId)
     const targetIndex = current.indexOf(targetId)
@@ -141,103 +133,91 @@ export default function SpacesPage(): ReactNode {
     setDraggingId(undefined)
   }
 
-  const displayedSpaces = sorting
+  const displayedSpaces = (sorting
     ? orderedIds.map(id => spacesById.get(id)).filter((space): space is Space => space !== undefined)
-    : spaces
-  const sections = KINDS.map(kind => ({ kind, items: displayedSpaces.filter(space => kindOf(space) === kind) }))
+    : spaces).filter(space => kindOf(space) === kind)
+  const kindLabel = t(kind === 'python' ? 'runtimes.tabPython' : 'runtimes.tabNode')
 
   return (
     <div className="page">
       <Flex justify="space-between" align="center" style={{ marginBottom: 16 }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>{t('spaces.title')}</Typography.Title>
-        {sections.some(section => section.items.length > 1) && (
-          <Button
-            type={sorting ? 'primary' : 'default'}
-            icon={sorting ? <CheckOutlined /> : <DragOutlined />}
-            loading={sorting && sortingSaving}
-            onClick={toggleSorting}
-          >
-            {t(sorting ? 'spaces.finishSorting' : 'spaces.sort')}
+        <Typography.Title level={4} style={{ margin: 0 }}>{t(kind === 'python' ? 'nav.pythonSpaces' : 'nav.nodeSpaces')}</Typography.Title>
+        <Flex gap={8}>
+          {displayedSpaces.length > 1 && (
+            <Button
+              type={sorting ? 'primary' : 'default'}
+              icon={sorting ? <CheckOutlined /> : <DragOutlined />}
+              loading={sorting && sortingSaving}
+              onClick={toggleSorting}
+            >
+              {t(sorting ? 'spaces.finishSorting' : 'spaces.sort')}
+            </Button>
+          )}
+          <Button icon={<FolderAddOutlined />} disabled={sorting} loading={picking} onClick={() => void pickProject()}>
+            {t('spaces.importProject')}
           </Button>
-        )}
+          <Button type="primary" icon={<PlusOutlined />} disabled={sorting} onClick={() => setEditing({ open: true })}>
+            {t('spaces.create')}
+          </Button>
+        </Flex>
       </Flex>
 
-      <Flex vertical gap={24}>
-        {sections.map(({ kind, items }) => {
-          const label = t(kind === 'python' ? 'runtimes.tabPython' : 'runtimes.tabNode')
-          return (
-            <section key={kind}>
-              <Flex justify="space-between" align="center" style={{ marginBottom: 12 }}>
-                <Flex align="baseline" gap={8}>
-                  <Typography.Title level={5} style={{ margin: 0 }}>{label}</Typography.Title>
-                  <Typography.Text type="secondary">{items.length}</Typography.Text>
-                </Flex>
-                <Flex gap={8}>
-                  <Button icon={<FolderAddOutlined />} disabled={sorting} loading={picking === kind} onClick={() => void pickProject(kind)}>
-                    {t('spaces.importProject')}
-                  </Button>
-                  <Button type="primary" icon={<PlusOutlined />} disabled={sorting} onClick={() => setEditing({ open: true, runtimeKind: kind })}>
-                    {t('spaces.create')}
-                  </Button>
-                </Flex>
+      {displayedSpaces.length === 0
+        ? (
+            <Empty description={t('spaces.emptyKind', { kind: kindLabel })} style={{ marginTop: 80 }}>
+              <Flex gap={8} justify="center">
+                <Button icon={<FolderAddOutlined />} loading={picking} onClick={() => void pickProject()}>{t('spaces.importProject')}</Button>
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditing({ open: true })}>{t('spaces.create')}</Button>
               </Flex>
-
-              {items.length === 0
-                ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('spaces.emptyKind', { kind: label })} />
-                : (
-                    <Row gutter={[12, 12]}>
-                      {items.map(space => (
-                        <Col
-                          key={space.id}
-                          xs={24}
-                          sm={12}
-                          md={8}
-                          xl={6}
-                          xxl={4}
-                          draggable={sorting && !sortingSaving}
-                          className={sorting ? `space-sortable${draggingId === space.id ? ' dragging' : ''}` : undefined}
-                          onDragStart={sorting && !sortingSaving
-                            ? (event) => {
-                                didDropRef.current = false
-                                setDraggingId(space.id)
-                                event.dataTransfer.effectAllowed = 'move'
-                                event.dataTransfer.setData('text/plain', space.id)
-                              }
-                            : undefined}
-                          onDragOver={sorting
-                            ? (event) => {
-                                // Not accepting the drop shows the "not allowed" cursor across sections
-                                if (!sameKind(draggingId, space.id))
-                                  return
-                                event.preventDefault()
-                                event.dataTransfer.dropEffect = 'move'
-                              }
-                            : undefined}
-                          onDrop={sorting ? event => handleDrop(event, space.id) : undefined}
-                          onDragEnd={sorting ? handleDragEnd : undefined}
-                        >
-                          <SpaceCard
-                            space={space}
-                            sorting={sorting}
-                            onOpen={() => navigate(`/spaces/${space.id}`)}
-                            onEdit={() => setEditing({ open: true, space })}
-                            onRemove={() => confirmRemove(space)}
-                            onOpenDir={() => invoke('space:open-dir', space.id).catch(error => message.error(formatError(t, error)))}
-                          />
-                        </Col>
-                      ))}
-                    </Row>
-                  )}
-            </section>
+            </Empty>
           )
-        })}
-      </Flex>
+        : (
+            <Row gutter={[12, 12]}>
+              {displayedSpaces.map(space => (
+                <Col
+                  key={space.id}
+                  xs={24}
+                  sm={12}
+                  md={8}
+                  xl={6}
+                  xxl={4}
+                  draggable={sorting && !sortingSaving}
+                  className={sorting ? `space-sortable${draggingId === space.id ? ' dragging' : ''}` : undefined}
+                  onDragStart={sorting && !sortingSaving
+                    ? (event) => {
+                        didDropRef.current = false
+                        setDraggingId(space.id)
+                        event.dataTransfer.effectAllowed = 'move'
+                        event.dataTransfer.setData('text/plain', space.id)
+                      }
+                    : undefined}
+                  onDragOver={sorting
+                    ? (event) => {
+                        event.preventDefault()
+                        event.dataTransfer.dropEffect = 'move'
+                      }
+                    : undefined}
+                  onDrop={sorting ? event => handleDrop(event, space.id) : undefined}
+                  onDragEnd={sorting ? handleDragEnd : undefined}
+                >
+                  <SpaceCard
+                    space={space}
+                    sorting={sorting}
+                    onOpen={() => navigate(`/spaces/${space.id}`)}
+                    onEdit={() => setEditing({ open: true, space })}
+                    onRemove={() => confirmRemove(space)}
+                    onOpenDir={() => invoke('space:open-dir', space.id).catch(error => message.error(formatError(t, error)))}
+                  />
+                </Col>
+              ))}
+            </Row>
+          )}
 
       <SpaceFormModal
         open={editing.open}
         space={editing.space}
         project={editing.project}
-        runtimeKind={editing.runtimeKind ?? editing.space?.runtime?.kind ?? 'node'}
+        runtimeKind={editing.space ? kindOf(editing.space) : kind}
         // Keep the space while the close animation plays so the title doesn't flip to "create"
         onClose={() => setEditing(prev => ({ ...prev, open: false }))}
         onSaved={(space) => {
