@@ -8,6 +8,9 @@
 - [src/main/ipc/space.ts](file://src/main/ipc/space.ts)
 - [src/main/paths.ts](file://src/main/paths.ts)
 - [src/shared/types/space.ts](file://src/shared/types/space.ts)
+- [src/shared/types/runtime.ts](file://src/shared/types/runtime.ts)
+- [src/shared/types/settings.ts](file://src/shared/types/settings.ts)
+- [src/shared/defaults.ts](file://src/shared/defaults.ts)
 - [src/main/services/script/service.ts](file://src/main/services/script/service.ts)
 - [src/main/services/script/project-files.ts](file://src/main/services/script/project-files.ts)
 - [src/main/services/script/templates.ts](file://src/main/services/script/templates.ts)
@@ -18,11 +21,10 @@
 
 ## 更新摘要
 **变更内容**   
-- 新增 Python 项目检测与识别功能，支持自动检测 Python 版本要求和依赖管理器
-- 增强空间创建和编辑界面，支持 Python 项目的智能导入和配置
-- 扩展项目信息读取能力，包括 Python 项目元数据解析和版本要求检测
-- 新增 Python 模板系统，支持 pyproject.toml 生成和欢迎脚本创建
-- 完善 IPC 接口，支持 Python 项目的实时检测和配置预填充
+- 新增 `normalizeRuntime` 函数用于运行时类型验证和规范化，确保运行时配置的健壮性
+- 增强 Node.js 默认行为支持，通过设置中的 `defaultNodeVersion` 和 `defaultPythonVersion` 提供智能默认值
+- 改进空间创建流程，自动处理运行时类型的边界情况和空值
+- 完善前端表单逻辑，优先使用用户设置的默认版本，回退到已安装的运行时版本
 
 ## 目录
 1. [简介](#简介)
@@ -44,7 +46,7 @@
 ## 简介
 Space 服务负责"项目空间"的完整生命周期管理，包括空间的创建、读取、更新、删除，以及脚本与运行环境的关联。它通过 IPC 层暴露给渲染进程，使用文件系统持久化空间元数据、包配置和脚本内容，并通过 runner 与 deps 服务协调运行期资源占用，确保删除操作不会破坏正在运行的任务或依赖安装过程。
 
-**更新** 新增了强大的项目检测能力，能够自动识别现有项目、检测包管理器类型、解析 Node.js 和 Python 版本要求，并支持将现有项目直接导入为空间进行管理。特别增强了 Python 项目支持，包括 pyproject.toml 解析、Python 版本自动检测和多种依赖管理器的识别。
+**更新** 新增了强大的项目检测能力，能够自动识别现有项目、检测包管理器类型、解析 Node.js 和 Python 版本要求，并支持将现有项目直接导入为空间进行管理。特别增强了 Python 项目支持，包括 pyproject.toml 解析、Python 版本自动检测和多种依赖管理器的识别。**新增** 运行时验证机制，通过 `normalizeRuntime` 函数确保运行时配置的健壮性和一致性。
 
 ## 项目结构
 Space 相关代码主要分布在以下位置：
@@ -54,6 +56,9 @@ Space 相关代码主要分布在以下位置：
 - IPC 接口注册：`src/main/ipc/space.ts`
 - 路径与 ID 校验：`src/main/paths.ts`
 - 共享类型定义：`src/shared/types/space.ts`
+- 运行时类型定义：`src/shared/types/runtime.ts`
+- 设置类型定义：`src/shared/types/settings.ts`
+- 默认设置：`src/shared/defaults.ts`
 - 脚本管理与模板：`src/main/services/script`
 - 运行器与环境构建：`src/main/services/runner`
 - 前端界面：`src/renderer/src/pages/spaces`
@@ -75,6 +80,9 @@ I["SpacesPage.tsx"]
 end
 subgraph "共享类型"
 T["types/space.ts"]
+R["types/runtime.ts"]
+S["types/settings.ts"]
+Df["defaults.ts"]
 end
 A --> B
 A --> C
@@ -90,6 +98,9 @@ F -.-> T
 G -.-> T
 C -.-> T
 D -.-> T
+H -.-> R
+H -.-> S
+H -.-> Df
 ```
 
 **图表来源**
@@ -97,17 +108,17 @@ D -.-> T
 - [src/main/services/space/service.ts:10-212](file://src/main/services/space/service.ts#L10-L212)
 - [src/main/services/python/project.ts:1-103](file://src/main/services/python/project.ts#L1-L103)
 - [src/main/services/space/project.ts:1-152](file://src/main/services/space/project.ts#L1-L152)
-- [src/renderer/src/pages/spaces/SpaceFormModal.tsx:1-183](file://src/renderer/src/pages/spaces/SpaceFormModal.tsx#L1-L183)
+- [src/renderer/src/pages/spaces/SpaceFormModal.tsx:1-191](file://src/renderer/src/pages/spaces/SpaceFormModal.tsx#L1-L191)
 
 **章节来源**
 - [src/main/ipc/space.ts:1-81](file://src/main/ipc/space.ts#L1-L81)
 - [src/main/services/space/service.ts:10-212](file://src/main/services/space/service.ts#L10-L212)
 - [src/main/services/python/project.ts:1-103](file://src/main/services/python/project.ts#L1-L103)
 - [src/main/services/space/project.ts:1-152](file://src/main/services/space/project.ts#L1-L152)
-- [src/renderer/src/pages/spaces/SpaceFormModal.tsx:1-183](file://src/renderer/src/pages/spaces/SpaceFormModal.tsx#L1-L183)
+- [src/renderer/src/pages/spaces/SpaceFormModal.tsx:1-191](file://src/renderer/src/pages/spaces/SpaceFormModal.tsx#L1-L191)
 
 ## 核心组件
-- SpaceService：提供空间 CRUD、并发安全的元数据更新、以及与历史目录和脚本目录的联动清理，新增项目导入功能和 Python 项目脚手架支持。
+- SpaceService：提供空间 CRUD、并发安全的元数据更新、以及与历史目录和脚本目录的联动清理，新增项目导入功能和 Python 项目脚手架支持。**新增** 运行时验证功能，通过 `normalizeRuntime` 函数确保运行时配置的健壮性。
 - PythonProjectDetector：Python 项目检测模块，负责 pyproject.toml 解析、Python 版本检测、依赖管理器识别。
 - ProjectDetector：项目检测模块，负责包管理器识别、Node.js 版本解析、项目信息扫描。
 - ScriptService：管理空间内脚本文件的增删改查、导入、重命名、运行配置保存，支持项目空间模式。
@@ -128,7 +139,7 @@ D -.-> T
 - [src/main/services/script/templates.ts:1-15](file://src/main/services/script/templates.ts#L1-L15)
 
 ## 架构总览
-Space 服务作为"空间"这一业务实体的核心，向上通过 IPC 暴露 API，向下通过文件系统持久化数据，并与脚本服务和运行器协作完成脚本执行与历史记录。新增的项目检测系统使得 Space 服务能够智能识别和管理现有的 JavaScript/TypeScript 和 Python 项目。
+Space 服务作为"空间"这一业务实体的核心，向上通过 IPC 暴露 API，向下通过文件系统持久化数据，并与脚本服务和运行器协作完成脚本执行与历史记录。新增的项目检测系统使得 Space 服务能够智能识别和管理现有的 JavaScript/TypeScript 和 Python 项目。**新增** 运行时验证机制确保所有空间都使用有效的运行时配置。
 
 ```mermaid
 sequenceDiagram
@@ -148,6 +159,7 @@ PyProj-->>IPC : "返回 Python 项目信息"
 IPC-->>UI : "返回包含 Python 版本提示的信息"
 UI->>IPC : "space : import-project(projectPath)"
 IPC->>Svc : "importProject(input)"
+Svc->>Svc : "normalizeRuntime(runtime)"
 Svc->>FS : "写入 space.json (含 Python 配置)"
 Svc-->>IPC : "返回 Space (含 projectPath)"
 IPC-->>UI : "返回 Space"
@@ -157,13 +169,14 @@ IPC-->>UI : "返回 Space"
 - [src/main/ipc/space.ts:47-70](file://src/main/ipc/space.ts#L47-L70)
 - [src/main/services/python/project.ts:92-102](file://src/main/services/python/project.ts#L92-L102)
 - [src/main/services/space/service.ts:93-112](file://src/main/services/space/service.ts#L93-L112)
+- [src/main/services/space/service.ts:27-29](file://src/main/services/space/service.ts#L27-L29)
 
 ## 详细组件分析
 
-### SpaceService：空间生命周期与并发安全
+### SpaceService：空间生命周期与运行时验证
 - 列表：扫描 `paths.spaces`，过滤合法 ID，并行读取每个空间的 `space.json`，按更新时间倒序返回。
 - 获取：校验 ID 格式后读取 `space.json`，不存在则抛出未找到错误。
-- 创建：生成 UUID 作为 id，创建脚本目录、`package.json`、`.npmrc`、欢迎脚本，最后写入 `space.json`。**新增** 支持 Python 项目脚手架，自动生成 `pyproject.toml` 和 Python 欢迎脚本。
+- 创建：生成 UUID 作为 id，创建脚本目录、`package.json`、`.npmrc`、欢迎脚本，最后写入 `space.json`。**新增** 使用 `normalizeRuntime` 函数验证和规范化运行时配置，确保运行时类型的正确性。**新增** 支持 Python 项目脚手架，自动生成 `pyproject.toml` 和 Python 欢迎脚本。
 - **新增** 导入项目：`importProject` 方法允许将现有项目目录引用为空间，仅写入 `space.json` 元数据，不修改原项目文件。支持 Python 项目的 `pythonManager` 和 `pythonVersionSource` 字段。
 - 更新：基于 mutate 串行化更新，仅更新传入字段，并刷新 `updatedAt`。
 - 删除：先校验存在性，再递归删除空间根目录和历史目录。
@@ -181,6 +194,7 @@ class SpaceService {
 + remove(id) void
 + mutate(id, fn) Space
 - scaffoldPython(id, space) void
+- normalizeRuntime(runtime) SpaceRuntime
 }
 ```
 
@@ -189,6 +203,30 @@ class SpaceService {
 
 **章节来源**
 - [src/main/services/space/service.ts:14-212](file://src/main/services/space/service.ts#L14-L212)
+
+### normalizeRuntime：运行时验证与规范化
+**新增** 运行时验证函数确保空间运行时配置的健壮性和一致性：
+
+- **类型验证**：`normalizeRuntime` 函数接收 `SpaceInput['runtime']` 参数，验证运行时类型的有效性。
+- **默认行为**：当运行时类型为 `python` 时保留 Python 类型，否则默认为 `node` 类型。
+- **空值处理**：当运行时配置为空时，返回默认的 Node.js 运行时配置。
+- **版本处理**：保持原始版本字符串，不进行额外转换。
+
+```mermaid
+flowchart TD
+Start(["输入 runtime"]) --> CheckKind{"检查 kind 字段"}
+CheckKind --> |'python'| SetPython["设置为 python"]
+CheckKind --> |其他/null| SetNode["设置为 node"]
+SetPython --> SetVersion["设置 version"]
+SetNode --> SetVersion
+SetVersion --> Return["返回标准化的 SpaceRuntime"]
+```
+
+**图表来源**
+- [src/main/services/space/service.ts:27-29](file://src/main/services/space/service.ts#L27-L29)
+
+**章节来源**
+- [src/main/services/space/service.ts:27-29](file://src/main/services/space/service.ts#L27-L29)
 
 ### PythonProjectDetector：Python 项目检测与识别系统
 **新增** Python 项目检测模块提供完整的 Python 项目识别能力：
@@ -504,6 +542,7 @@ Project --> Walk["script/walk.ts"]
 - **新增** 项目扫描：使用 `walkProject` 限制最大文件数为 1000，避免大型项目导致的性能问题。
 - **新增** 包管理器检测：缓存检测结果，避免重复的文件系统操作。
 - **新增** Python 项目检测：异步解析 pyproject.toml，避免阻塞主线程。
+- **新增** 运行时验证：`normalizeRuntime` 函数提供 O(1) 复杂度的类型验证。
 
 [本节为通用性能讨论，不直接分析具体文件]
 
@@ -515,6 +554,8 @@ Project --> Walk["script/walk.ts"]
 - **新增** 项目信息 `ProjectInfo`：包含脚本组、包管理器、Node.js 版本提示、Python 版本提示、包名、截断标志、PnP 支持状态。
 - **新增** 包管理器类型 `PackageManager`：支持 'npm' | 'pnpm' | 'yarn' | 'bun'。
 - **新增** Python 依赖管理器类型 `PythonDependencyManager`：支持 'uv' | 'poetry' | 'pdm' | 'requirements' | 'pep517' | 'none'。
+- **新增** 运行时类型 `RuntimeKind`：支持 'node' | 'python'。
+- **新增** 运行设置 `RunSettings`：包含 historyLimit、defaultNodeVersion、defaultPythonVersion。
 
 ```mermaid
 erDiagram
@@ -556,16 +597,26 @@ string package_name
 boolean truncated
 boolean pnp
 }
+RUN_SETTINGS {
+number historyLimit
+string defaultNodeVersion
+string defaultPythonVersion
+}
 SPACE ||--o{ SCRIPT_META : "scripts"
 SPACE ||--|| PYTHON_PROJECT_INFO : "references"
 SPACE ||--|| PROJECT_INFO : "references"
+SETTINGS ||--|| RUN_SETTINGS : "contains"
 ```
 
 **图表来源**
 - [src/shared/types/space.ts:14-80](file://src/shared/types/space.ts#L14-L80)
+- [src/shared/types/runtime.ts:1-38](file://src/shared/types/runtime.ts#L1-L38)
+- [src/shared/types/settings.ts:28-44](file://src/shared/types/settings.ts#L28-L44)
 
 **章节来源**
 - [src/shared/types/space.ts:1-120](file://src/shared/types/space.ts#L1-L120)
+- [src/shared/types/runtime.ts:1-38](file://src/shared/types/runtime.ts#L1-L38)
+- [src/shared/types/settings.ts:1-60](file://src/shared/types/settings.ts#L1-L60)
 
 ## 路径解析与数据隔离
 - 根目录：基于 Electron `app.getPath('userData')` 确定应用数据根。
@@ -613,10 +664,11 @@ ProjectDir --> Scripts["项目脚本"]
   - TS 模板：带 process.argv 的示例。
 - 初始化流程（创建空间）：
   1. 生成 id 与时间戳。
-  2. 根据运行时类型创建相应环境。
-  3. **新增** Python 项目：创建 `pyproject.toml` 和 `hello.py`。
-  4. **新增** Node.js 项目：创建 `package.json`、`.npmrc` 和 `hello.ts`。
-  5. 写入 `space.json`。
+  2. **新增** 使用 `normalizeRuntime` 验证运行时配置。
+  3. 根据运行时类型创建相应环境。
+  4. **新增** Python 项目：创建 `pyproject.toml` 和 `hello.py`。
+  5. **新增** Node.js 项目：创建 `package.json`、`.npmrc` 和 `hello.ts`。
+  6. 写入 `space.json`。
 - **新增** 项目导入流程：
   1. 验证项目路径有效性。
   2. 检查项目是否在 spaces 目录外。
@@ -627,7 +679,8 @@ ProjectDir --> Scripts["项目脚本"]
 ```mermaid
 flowchart TD
 Start(["创建空间"]) --> GenId["生成 UUID 与时间戳"]
-GenId --> CheckRuntime{"检查运行时类型"}
+GenId --> NormalizeRuntime["normalizeRuntime 验证"]
+NormalizeRuntime --> CheckRuntime{"检查运行时类型"}
 CheckRuntime --> |Python| CreatePyproject["创建 pyproject.toml"]
 CheckRuntime --> |Node| CreatePackage["创建 package.json"]
 CreatePyproject --> CreateWelcomePy["创建 hello.py"]
@@ -650,6 +703,7 @@ WriteMetaOnly --> ImportEnd(["返回 Space"])
 - [src/main/services/space/service.ts:93-112](file://src/main/services/space/service.ts#L93-L112)
 - [src/main/services/space/service.ts:202-209](file://src/main/services/space/service.ts#L202-L209)
 - [src/main/services/space/templates.ts:19-34](file://src/main/services/space/templates.ts#L19-L34)
+- [src/main/services/space/service.ts:27-29](file://src/main/services/space/service.ts#L27-L29)
 
 **章节来源**
 - [src/main/services/space/service.ts:64-112](file://src/main/services/space/service.ts#L64-L112)
@@ -665,6 +719,7 @@ WriteMetaOnly --> ImportEnd(["返回 Space"])
   - **新增** 项目路径安全：项目不能位于 spaces 目录内，避免意外删除。
   - **新增** 包管理器支持：支持 npm、pnpm、yarn、bun 的自动检测。
   - **新增** Python 依赖管理器支持：支持 uv、poetry、pdm、requirements、pep517 的自动检测。
+  - **新增** 运行时验证：通过 `normalizeRuntime` 确保运行时类型的正确性。
 - 自定义空间模板：
   - 修改欢迎脚本与 `.npmrc`：在 `space/templates.ts` 中替换常量。
   - **新增** Python 模板：在 `space/templates.ts` 中修改 `PYTHON_WELCOME_SCRIPT` 和 `PYTHON_PYPROJECT_TEMPLATE`。
@@ -679,6 +734,10 @@ WriteMetaOnly --> ImportEnd(["返回 Space"])
   - **新增** Python 依赖管理器扩展：在 `detectManagers` 函数中添加新的依赖管理器检测逻辑。
   - **新增** Python 版本解析扩展：在 `detectPythonPin` 函数中添加新的版本配置文件支持。
   - 自定义项目信息扫描：重写 `readProjectInfo` 函数以支持额外的项目配置。
+- **新增** 运行时默认值扩展：
+  - 修改默认运行时版本：在 `DEFAULT_SETTINGS.run.defaultNodeVersion` 和 `DEFAULT_SETTINGS.run.defaultPythonVersion` 中设置。
+  - 扩展运行时验证逻辑：在 `normalizeRuntime` 函数中添加新的运行时类型支持。
+  - 前端默认值处理：在 `SpaceFormModal.tsx` 中调整默认版本的计算逻辑。
 
 [本节为概念性指导，不直接分析具体文件]
 
@@ -700,6 +759,7 @@ WriteMetaOnly --> ImportEnd(["返回 Space"])
   - **新增** 验证项目路径的有效性和唯一性。
   - **新增** 检查包管理器检测是否正确识别了项目使用的工具。
   - **新增** 检查 Python 项目检测是否正确解析了 pyproject.toml 和版本配置文件。
+  - **新增** 检查运行时配置是否通过 `normalizeRuntime` 验证。
 
 **章节来源**
 - [src/main/services/space/service.ts:26-30](file://src/main/services/space/service.ts#L26-L30)
@@ -710,4 +770,4 @@ WriteMetaOnly --> ImportEnd(["返回 Space"])
 - [src/main/services/space/project.ts:132-147](file://src/main/services/space/project.ts#L132-L147)
 
 ## 结论
-Space 服务以清晰的职责边界与稳健的路径/ID 校验机制，提供了可靠的空间管理能力。通过 IPC 层与 Runner/Deps 服务的协作，确保了删除操作的原子性与安全性。新增的项目检测系统显著增强了服务的智能化水平，能够自动识别和管理现有的 JavaScript/TypeScript 和 Python 项目，支持多种包管理器和 Node.js/Python 版本的自动检测。模板系统简化了空间初始化与脚本开发体验，特别是新增的 Python 项目支持使得开发者可以更轻松地管理和运行 Python 项目。未来可通过扩展模板、增强迁移策略、增加更多包管理器支持和优化项目扫描性能来进一步提升系统的可维护性与健壮性。
+Space 服务以清晰的职责边界与稳健的路径/ID 校验机制，提供了可靠的空间管理能力。通过 IPC 层与 Runner/Deps 服务的协作，确保了删除操作的原子性与安全性。**新增** 的运行时验证机制通过 `normalizeRuntime` 函数显著增强了系统的健壮性，确保所有空间都使用有效的运行时配置。项目检测系统进一步提升了服务的智能化水平，能够自动识别和管理现有的 JavaScript/TypeScript 和 Python 项目，支持多种包管理器和 Node.js/Python 版本的自动检测。模板系统简化了空间初始化与脚本开发体验，特别是新增的 Python 项目支持使得开发者可以更轻松地管理和运行 Python 项目。**新增** 的默认运行时版本设置功能允许用户配置首选的 Node.js 和 Python 版本，提供更好的用户体验。未来可通过扩展模板、增强迁移策略、增加更多包管理器支持和优化项目扫描性能来进一步提升系统的可维护性与健壮性。
