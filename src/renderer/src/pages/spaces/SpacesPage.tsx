@@ -143,16 +143,15 @@ export default function SpacesPage({ kind }: { kind: RuntimeKind }): ReactNode {
       <Flex justify="space-between" align="center" style={{ marginBottom: 16 }}>
         <Typography.Title level={4} style={{ margin: 0 }}>{t(kind === 'python' ? 'nav.pythonSpaces' : 'nav.nodeSpaces')}</Typography.Title>
         <Flex gap={8}>
-          {displayedSpaces.length > 1 && (
-            <Button
-              type={sorting ? 'primary' : 'default'}
-              icon={sorting ? <CheckOutlined /> : <DragOutlined />}
-              loading={sorting && sortingSaving}
-              onClick={toggleSorting}
-            >
-              {t(sorting ? 'spaces.finishSorting' : 'spaces.sort')}
-            </Button>
-          )}
+          <Button
+            type={sorting ? 'primary' : 'default'}
+            icon={sorting ? <CheckOutlined /> : <DragOutlined />}
+            loading={sorting && sortingSaving}
+            disabled={!sorting && displayedSpaces.length < 2}
+            onClick={toggleSorting}
+          >
+            {t(sorting ? 'spaces.finishSorting' : 'spaces.sort')}
+          </Button>
           <Button icon={<FolderAddOutlined />} disabled={sorting} loading={picking} onClick={() => void pickProject()}>
             {t('spaces.importProject')}
           </Button>

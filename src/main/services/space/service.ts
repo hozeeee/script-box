@@ -23,6 +23,11 @@ export function migrateSpace(space: Space): Space {
   return { ...space, runtime: { kind: 'node', version } }
 }
 
+/** Never persist a runtime without a kind: it would silently be migrated to Node.js */
+function normalizeRuntime(runtime: SpaceInput['runtime']): SpaceRuntime {
+  return { kind: runtime?.kind === 'python' ? 'python' : 'node', version: runtime?.version ?? null }
+}
+
 class SpaceService {
   /** Per-space promise chain so concurrent metadata updates never clobber each other */
   private locks = new Map<string, Promise<unknown>>()
@@ -64,7 +69,7 @@ class SpaceService {
   async create(input: SpaceInput): Promise<Space> {
     const id = randomUUID()
     const now = Date.now()
-    const runtime: SpaceRuntime = input.runtime ?? { kind: 'node', version: null }
+    const runtime = normalizeRuntime(input.runtime)
     const space: Space = {
       id,
       name: input.name.trim(),
@@ -94,7 +99,7 @@ class SpaceService {
     const projectPath = await this.claimProjectPath(input.projectPath)
     const id = randomUUID()
     const now = Date.now()
-    const runtime: SpaceRuntime = input.runtime ?? { kind: 'node', version: null }
+    const runtime = normalizeRuntime(input.runtime)
     const space: Space = {
       id,
       name: input.name.trim(),

@@ -109,7 +109,15 @@ export default function SpaceFormModal({ open, space, project, runtimeKind: kind
   }
 
   const submit = async (): Promise<void> => {
-    const values = await form.validateFields()
+    const fields = await form.validateFields()
+    // validateFields only returns registered fields: the runtime kind and the detected Python
+    // project settings have no input, so they must be merged back in explicitly
+    const values: SpaceInput = {
+      ...fields,
+      runtime: { kind, version: fields.runtime?.version ?? null },
+      pythonManager: initialValues.pythonManager,
+      pythonVersionSource: initialValues.pythonVersionSource,
+    }
     setSaving(true)
     try {
       const saved = space
