@@ -17,11 +17,11 @@
     "preview": "node tools/preview.mjs"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^9.5.1",
-    "@types/node": "^22.20.5",
+    "@antfu/eslint-config": "^10.0.0",
+    "@types/node": "^26.6.5",
     "esbuild": "^0.28.2",
     "eslint": "^10.13.0",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
